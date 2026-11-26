@@ -48,6 +48,7 @@ Settings → Pages → Source 選 **Deploy from a branch** → `main` / `(root)`
 
 ## 全校展示牆
 - 題目卡右側有 QR Code：班上 iPad 掃描 → 拍照（最多 3 張，自動壓縮）＋寫字 → 上傳，馬上出現在 `#wall`。
+- **上傳成功後，大屏約 6 秒內自動幫那一格打勾、加分**（含連線判斷），不用再回大屏按。第 3、5 格（Padlet）查不到，仍要在大屏手動按「✅ 答完了，打勾」。
 - 第 4 格「網頁隨機抽議題」：卡片上按「🎲 抽議題」，抽到後固定不變，上傳時自動帶上議題。
 - 第 6 格「數字密碼大搜查」：卡片上有 2 分鐘倒數計時。
 - 第 3、5 格（`share: "padlet"`）顯示 Padlet 的 QR Code，請在 `questions.js` 填 `padletUrl`。

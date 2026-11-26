@@ -33,6 +33,7 @@ function doPost(e) {
     if (req.action === 'clear') return out(clearRound(round, req.password));
     if (req.action === 'post') return out(post(round, req));
     if (req.action === 'wall') return out(wall(round, req.password));
+    if (req.action === 'mine') return out(mine(round, req.cls));
     if (req.action === 'file') return out(file(req.id, req.password));
     if (req.action === 'hide') return out(hide(req.id, !!req.hidden, req.password));
     if (req.action === 'login') { const pw = checkPw(req.password); return out(pw === true ? { ok: true } : pw); }
@@ -147,6 +148,17 @@ function post(round, req) {
     wallSheet().appendRow([id, safe(round), safe(cls), taskId, safe(title), safe(text), ids.join(','), new Date(), false]);
   } finally { lock.releaseLock(); }
   return { ok: true, id: id };
+}
+
+// 這班已上傳過哪些任務（大屏用來自動打勾；不含被老師隱藏的）
+function mine(round, cls) {
+  cls = clean(cls, 6);
+  const data = wallSheet().getDataRange().getValues(), ids = {};
+  for (let i = 1; i < data.length; i++) {
+    const hidden = data[i][8] === true || String(data[i][8]).toUpperCase() === 'TRUE';
+    if (unq(data[i][1]) === round && unq(data[i][2]) === cls && !hidden) ids[Number(data[i][3]) || 0] = 1;
+  }
+  return { ok: true, tasks: Object.keys(ids).map(Number) };
 }
 
 function wall(round, password) {

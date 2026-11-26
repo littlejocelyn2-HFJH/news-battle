@@ -530,7 +530,7 @@
       <ol class="steps">
         <li>全班拿出報紙，選一個號碼，請老師或小老師點開任務。</li>
         <li>完成任務後，用班上 iPad 掃 QR Code，拍照＋寫字上傳到全校展示牆（第 3、5 格上傳 Padlet）。</li>
-        <li>貼好後按「✅ 答完了，打勾」，這一格才算完成。</li>
+        <li>展示牆的任務上傳後會自動打勾；第 3、5 格貼好 Padlet 後，在大屏按「✅ 答完了，打勾」。</li>
         <li>每題依難度得分（難 3、中 2、易 1），🏆 大獎題分數最高；每連成一條線再加 <span id="sLinePts">5</span> 分！</li>
       </ol>
     </div>
@@ -643,7 +643,7 @@
     </div>
     <div id="postDone" class="hidden post-done">
       <div class="big">🎉 上傳成功！</div>
-      <p>回到投影畫面，按「✅ 答完了，打勾」就能得分。</p>
+      <p>大屏會在幾秒內<b>自動打勾、加分</b>，不用再回去按！</p>
       <div class="row">
         <button class="btn btn-ghost" id="pAgain">再上傳一則</button>
         <a class="btn btn-primary" id="pWall" href="#wall">🖼️ 看展示牆</a>
@@ -1004,12 +1004,12 @@
       }
       const hint = esc(CFG.padletHint || "").replace("801", esc(cls)).replace("全班標題接力賽", esc(c.title || ""));
       box.innerHTML = '<span class="share-tag padlet">📌 這題上傳 Padlet</span><div class="qr">' + qrSvg(url) + '</div>' +
-        '<div class="hint">用班上 iPad 掃描<br>' + hint + '</div><a href="' + esc(url) + '" target="_blank" rel="noopener">打開 Padlet ↗</a>';
+        '<div class="hint">用班上 iPad 掃描<br>' + hint + '<br><b>貼好後在大屏按「✅ 答完了，打勾」</b></div><a href="' + esc(url) + '" target="_blank" rel="noopener">打開 Padlet ↗</a>';
       return;
     }
     const url = postUrl(c);
     box.innerHTML = '<span class="share-tag">🖼️ 上傳到全校展示牆</span><div class="qr">' + qrSvg(url) + '</div>' +
-      '<div class="hint">用班上 iPad 掃描<br>拍照＋寫字，馬上上牆！</div>' +
+      '<div class="hint">用班上 iPad 掃描<br>拍照＋寫字上傳，<b>自動打勾</b>！</div>' +
       '<a href="' + esc(url) + '" target="_blank" rel="noopener">在這台電腦上傳 ↗</a>';
   }
 
@@ -1064,11 +1064,17 @@
   $("closeBtn").onclick = $("laterBtn").onclick = closeModal;
   $("doneBtn").onclick = () => {
     const pos = curPos; if (pos < 0) return;
+    if (state.done.includes(pos)) { state.done = state.done.filter(p => p !== pos); save(); closeModal(); render(); return; }
+    closeModal(); completeCell(pos);
+  };
+  // 完成一格：加分、判斷連線、慶祝（手動打勾與 iPad 上傳自動打勾共用）
+  function completeCell(pos, note){
+    if (state.done.includes(pos)) return;
     const before = lineCount();
-    let gained = 0;
-    if (state.done.includes(pos)) state.done = state.done.filter(p => p !== pos);
-    else { state.done.push(pos); gained = ptsOf(CARDS[state.order[pos]]); }
-    save(); closeModal();
+    if (!state.flipped.includes(pos)) state.flipped.push(pos);
+    state.done.push(pos);
+    let gained = ptsOf(CARDS[state.order[pos]]);
+    save();
     const after = lineCount();
     if (after > before) gained += (after - before) * LINE_PTS;
     if (after > before) {
@@ -1076,8 +1082,30 @@
       LINES.forEach(L => { if (L.every(p => state.done.includes(p)) && L.includes(pos)) L.forEach(p => newLineCells.add(p)); });
       render(newLineCells);
       bingo(after, gained);
-    } else { render(); if (gained) toast("+" + gained + " 分！"); }
-  };
+      if (note) setTimeout(() => toast(note), 2700);
+    } else { render(); toast((note ? note + " " : "") + "+" + gained + " 分！"); }
+  }
+
+  // iPad 上傳成功 → 大屏自動打勾（Padlet 題查不到，仍要手動）
+  let autoBusy = false;
+  async function checkUploads(){
+    if (!cls || !state || autoBusy || $("game").classList.contains("hidden")) return;
+    autoBusy = true;
+    try {
+      let tasks = [];
+      if (API) { const r = await api({ action: "mine", cls }); if (r && r.ok) tasks = r.tasks || []; }
+      else tasks = localPosts().filter(p => p.cls === cls && !p.hidden).map(p => p.taskId);
+      const want = new Set(tasks.map(Number));
+      state.order.forEach((ci, pos) => {
+        const c = CARDS[ci];
+        if (c && c.share !== "padlet" && want.has(Number(c.id)) && !state.done.includes(pos)) {
+          if (!$("modal").classList.contains("hidden") && curPos === pos) closeModal();
+          completeCell(pos, "📮 " + (c.title || "作品") + " 上傳成功，自動打勾！");
+        }
+      });
+    } catch(e) {} finally { autoBusy = false; }
+  }
+  setInterval(checkUploads, 6000);
   let toastT = null;
   function toast(t){
     const el = $("toast"); el.textContent = t; el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
