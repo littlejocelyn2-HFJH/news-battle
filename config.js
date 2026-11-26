@@ -3,7 +3,7 @@
 // ==========================================================
 window.FLIP_SYNC = {
   // 排行榜後端：Apps Script 網頁應用程式的 /exec 網址（空白＝本機試玩模式）
-  sheetApi: "",
+  sheetApi: "https://script.google.com/macros/s/AKfycbwdHB8H8v6ZZFE1I6ceHxAQZjRTilcAbm5Gt6Ndf3-WtfBofqGDm2fOvCxrqfOXb7iH/exec",
 
   // 場次名稱：每換一次讀報活動就改新名字，排行榜與各班牌面會一起重新開始
   round: "第 1 場",
