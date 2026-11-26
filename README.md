@@ -26,7 +26,7 @@ Settings → Pages → Source 選 **Deploy from a branch** → `main` / `(root)`
 
 ## 二、部署排行榜後端（只要做一次）
 1. 新增一個 Google 試算表 → 擴充功能 → Apps Script。
-2. 把 `apps-script/Code.gs` 全部貼上，**第 8 行改成老師密碼**（10 字以上、英數混合）。
+2. 把 `apps-script/Code.gs` 全部貼上，**第 10 行改成老師密碼**（10 字以上、英數混合）。
 3. 部署 → 新增部署作業 → 類型選「網頁應用程式」→ 執行身分：**我**；誰可以存取：**所有人** → 部署。
 4. 複製 `/exec` 結尾的網址，貼進 `config.js` 的 `sheetApi`。
 5. 直接打開那個網址看到 `{"ok":true,...}` 是正常的。
