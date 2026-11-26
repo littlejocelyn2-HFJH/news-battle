@@ -11,7 +11,8 @@ const PASSWORD = 'change-me';      // ← 改成 10 字以上、英數混合的�
 const CLASSES = [];                // 可限定班級，例如 ['701','702','801']；空白＝不限
 const MAX_CELLS = 25, MAX_LINES = 12, MAX_PRIZES = 5, MAX_POINTS = 300;   // 支援 3×3、4×4、5×5
 const SHEET = '排行榜';
-const HEAD = ['場次', '班級', '完成格數', '連線數', '大獎數', '達成時間', '最後更新', '總分'];
+const HEAD = ['場次', '班級', '完成格數', '連線數', '大獎數', '達成時間', '最後更新', '總分', '牌面存檔'];
+const MAX_STATE = 4000;
 const WALL = '展示牆';
 const WALL_HEAD = ['編號', '場次', '班級', '任務編號', '任務', '文字', '照片檔案', '上傳時間', '隱藏'];
 const FOLDER = '讀報展示牆';
@@ -28,6 +29,7 @@ function doPost(e) {
   try {
     if (req.action === 'save') return out(save(round, req));
     if (req.action === 'list') return out({ ok: true, rows: list(round), now: Date.now() });
+    if (req.action === 'load') return out(loadState(round, req.cls));
     if (req.action === 'clear') return out(clearRound(round, req.password));
     if (req.action === 'post') return out(post(round, req));
     if (req.action === 'wall') return out(wall(round, req.password));
@@ -45,6 +47,8 @@ function save(round, req) {
   if (!/^[0-9A-Za-z一-鿿]{1,6}$/.test(cls)) return { ok: false, error: 'bad class' };
   if (CLASSES.length && CLASSES.indexOf(cls) < 0) return { ok: false, error: 'class not allowed' };
   const done = clampInt(req.done, MAX_CELLS), lines = clampInt(req.lines, MAX_LINES), prizes = clampInt(req.prizes, MAX_PRIZES), points = clampInt(req.points, MAX_POINTS);
+  let st = '';                                       // 牌面存檔（換電腦也能接著玩）
+  if (req.state) { try { st = JSON.stringify(req.state); } catch (e) { st = ''; } if (st.length > MAX_STATE) st = ''; }
   const lock = LockService.getScriptLock(); lock.waitLock(10000);
   try {
     const sh = sheet(), data = sh.getDataRange().getValues(), now = new Date();
@@ -53,11 +57,11 @@ function save(round, req) {
         const oldKey = (Number(data[i][7]) || 0) * 1e6 + Number(data[i][3]) * 1000 + Number(data[i][2]);
         const newKey = points * 1e6 + lines * 1000 + done;
         const reached = newKey > oldKey ? now : (data[i][5] || now);
-        sh.getRange(i + 1, 3, 1, 6).setValues([[done, lines, prizes, reached, now, points]]);
+        sh.getRange(i + 1, 3, 1, 7).setValues([[done, lines, prizes, reached, now, points, st || data[i][8] || '']]);
         return { ok: true };
       }
     }
-    sh.appendRow([safe(round), safe(cls), done, lines, prizes, now, now, points]);
+    sh.appendRow([safe(round), safe(cls), done, lines, prizes, now, now, points, st]);
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
@@ -85,6 +89,18 @@ function checkPw(password) {
   }
   cache.remove('fails');
   return true;
+}
+
+function loadState(round, cls) {
+  cls = clean(cls, 6);
+  const data = sheet().getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (unq(data[i][0]) === round && unq(data[i][1]) === cls) {
+      let st = null; try { st = JSON.parse(String(data[i][8] || '')); } catch (e) {}
+      return { ok: true, state: st };
+    }
+  }
+  return { ok: true, state: null };
 }
 
 function clearRound(round, password) {

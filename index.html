@@ -796,7 +796,7 @@
   function save(){
     const sc = scoreOf(state), key = sc.points * 1e6 + sc.lines * 1000 + sc.done;
     if (state.bestKey == null || key > state.bestKey || !state.reachedAt) { state.reachedAt = Date.now(); }
-    state.bestKey = key;
+    state.bestKey = key; state.savedAt = Date.now();
     mem[cls] = state; store.set("class:" + cls, state);
     if (API) schedulePush(); else refreshMyRank();
   }
@@ -806,6 +806,7 @@
     try {
       const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(Object.assign({ round: ROUND }, body)), signal: ctl.signal });
+      if (!r.ok) throw new Error("伺服器忙線（" + r.status + "）");
       return await r.json();
     } finally { clearTimeout(t); }
   }
@@ -815,7 +816,9 @@
     clearTimeout(pushTimer);
     pushTimer = setTimeout(async () => {
       const sc = scoreOf(state);
-      try { await api({ action: "save", cls, done: sc.done, lines: sc.lines, prizes: sc.prizes, points: sc.points }); refreshMyRank(); }
+      try { await api({ action: "save", cls, done: sc.done, lines: sc.lines, prizes: sc.prizes, points: sc.points,
+        state: { sig: state.sig, order: state.order, flipped: state.flipped, done: state.done, draws: state.draws || {},
+                 reachedAt: state.reachedAt, bestKey: state.bestKey, savedAt: state.savedAt } }); refreshMyRank(); }
       catch(e){ pushTimer = setTimeout(schedulePush, 8000); }
     }, 600);
   }
@@ -870,13 +873,32 @@
     if (!/^[0-9A-Za-z一-鿿]{1,6}$/.test(v)) { $("err").textContent = "請輸入班級，例如 801"; return; }
     $("err").textContent = "";
     cls = v; store.set("lastClass", cls);
-    state = load(cls); save();
+    state = load(cls); mem[cls] = state; store.set("class:" + cls, state);   // 不更新存檔時間，才能和雲端比新舊
     $("start").classList.add("hidden"); $("game").classList.remove("hidden");
     $("gClass").textContent = cls;
-    render(); schedulePush(); refreshMyRank();
+    render(); refreshMyRank();
+    restoreFromServer(cls);
     if (location.hash !== "#play") location.hash = "#play";
   }
   $("startBtn").onclick = start;
+  // 換電腦、清過瀏覽器也能接著玩：比對雲端存檔，用比較新的那份
+  async function restoreFromServer(c){
+    if (!API) return;
+    let r = null;
+    try { r = await api({ action: "load", cls: c }); } catch(e) { schedulePush(); return; }
+    if (c !== cls) return;
+    const sv = r && r.state;
+    const valid = sv && sv.sig === sig && Array.isArray(sv.order) && sv.order.length === N &&
+      [...sv.order].sort((a, b) => a - b).every((v, i) => v === i) && Array.isArray(sv.done) && Array.isArray(sv.flipped);
+    const localHasProgress = state.done.length || state.flipped.length;
+    if (valid && (!localHasProgress || (sv.savedAt || 0) > (state.savedAt || 0))) {
+      state = { sig, order: sv.order, flipped: sv.flipped.filter(p => p >= 0 && p < N), done: sv.done.filter(p => p >= 0 && p < N),
+                draws: sv.draws || {}, reachedAt: sv.reachedAt, bestKey: sv.bestKey, savedAt: sv.savedAt };
+      mem[cls] = state; store.set("class:" + cls, state);
+      render(); refreshMyRank();
+      if (state.flipped.length) toast("已接續上次進度 👍");
+    } else schedulePush();
+  }
   $("classInput").addEventListener("keydown", e => { if (e.key === "Enter") start(); });
   $("homeLink").onclick = $("rankHome").onclick = () => { location.hash = ""; };
 
@@ -1209,6 +1231,13 @@
   // ================= iPad 上傳頁 =================
   const QS = new URLSearchParams(location.search);
   let postTask = null, postPhotos = [];
+  const draftKey = () => "draft:" + ROUND + ":" + ($("pCls").value.trim() || "-") + ":" + (postTask ? postTask.id : 0);
+  function saveDraft(){
+    if (!postTask) return;
+    const d = { text: $("pText").value, photos: postPhotos, at: Date.now() };
+    try { localStorage.setItem("flip:" + draftKey(), JSON.stringify(d)); }
+    catch(e) { try { localStorage.setItem("flip:" + draftKey(), JSON.stringify({ text: d.text, photos: [], at: d.at })); } catch(e2) {} }
+  }
   function initPost(){
     postTask = TASKS[Number(QS.get("task"))] || null;
     $("pCls").value = QS.get("cls") || store.get("lastClass") || ""; updPostCls();
@@ -1220,19 +1249,25 @@
     $("pText").placeholder = postTask && postTask.textHint ? postTask.textHint : "寫下你們的答案……";
     $("pNote").textContent = API ? "上傳後全校都看得到，請不要拍到同學的臉或寫真實姓名以外的個資。" : "本機試玩模式：只存在這台裝置，不會真的上傳。";
     $("postForm").classList.remove("hidden"); $("postDone").classList.add("hidden");
-    postPhotos = []; drawThumbs(); $("pText").value = ""; $("pCount").textContent = "0/200"; $("pErr").textContent = "";
+    postPhotos = []; $("pText").value = "";
+    const dr = postTask ? store.get(draftKey()) : null;          // 上次沒上傳完的草稿
+    if (dr && (dr.text || (dr.photos && dr.photos.length))) {
+      $("pText").value = dr.text || ""; postPhotos = (dr.photos || []).slice(0, 3);
+      $("pErr").textContent = "📝 已帶回上次還沒上傳的草稿";
+    } else $("pErr").textContent = "";
+    drawThumbs(); $("pCount").textContent = $("pText").value.length + "/200";
     $("pSend").disabled = !postTask;
   }
   function drawThumbs(){
     $("pThumbs").innerHTML = postPhotos.map((d, i) => '<div class="thumb"><img src="' + d + '" alt=""><button data-i="' + i + '" aria-label="刪除">✕</button></div>').join("");
-    $("pThumbs").querySelectorAll("button").forEach(b => b.onclick = () => { postPhotos.splice(Number(b.dataset.i), 1); drawThumbs(); });
+    $("pThumbs").querySelectorAll("button").forEach(b => b.onclick = () => { postPhotos.splice(Number(b.dataset.i), 1); drawThumbs(); saveDraft(); });
   }
   $("pFile").onchange = async e => {
     const files = [...e.target.files].slice(0, 3 - postPhotos.length);
     for (const f of files) { try { postPhotos.push(await shrink(f, API ? 1280 : 800)); } catch(err) { $("pErr").textContent = err.message; } }
-    e.target.value = ""; drawThumbs();
+    e.target.value = ""; drawThumbs(); saveDraft();
   };
-  $("pText").oninput = () => { $("pCount").textContent = $("pText").value.length + "/200"; };
+  $("pText").oninput = () => { $("pCount").textContent = $("pText").value.length + "/200"; saveDraft(); };
   $("pSend").onclick = async () => {
     const c = $("pCls").value.trim(), tp = QS.get("topic");
     let text = $("pText").value.trim();
@@ -1253,9 +1288,12 @@
         if (JSON.stringify(store.get(WALL_KEY) || []).length < 10) throw new Error("這台裝置空間不足，試玩模式存不下照片");
       }
       store.set("lastClass", c);
+      try { localStorage.removeItem("flip:" + draftKey()); } catch(e) {}
       $("postForm").classList.add("hidden"); $("postDone").classList.remove("hidden");
     } catch(err) {
-      $("pErr").textContent = "😢 " + (err.name === "AbortError" ? "網路太慢，請再按一次" : err.message);
+      saveDraft();
+      const msg = err.name === "AbortError" ? "網路太慢" : /JSON|fetch|Failed|伺服器/.test(err.message) ? "上傳沒成功" : err.message;
+      $("pErr").textContent = "😢 " + msg + "，請再按一次上傳（內容已暫存，不會不見）";
     } finally { $("pSend").disabled = false; $("pSend").textContent = "📮 上傳到展示牆"; }
   };
   $("pAgain").onclick = initPost;
