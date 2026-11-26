@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全校讀報連線爭霸戰</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#a8d8a3; --bg-2:#97cf92; --ink:#1d1d1b; --cream:#fffdf2; --muted:#3d4a3a;
+    --yellow:#ffe14a; --yellow-2:#ffd21f; --pink:#ffd3c4; --blue:#cfe6ff; --lemon:#fff4a3; --mint:#e4f7d9; --white:#ffffff;
+    --ok:#2f9e44;
+    --hand:"Huninn","jf-openhuninn","Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--hand);
+    background-image:radial-gradient(rgba(255,255,255,.18) 1.5px,transparent 1.6px);background-size:26px 26px;overflow-x:hidden}
+  button{font:inherit;cursor:pointer;color:var(--ink)}
+  .hidden{display:none!important}
+
+  /* 共用：手繪感按鈕與框 */
+  .btn{border:3px solid var(--ink);border-radius:16px 20px 14px 22px;padding:12px 26px;font-size:clamp(20px,2.2vw,28px);font-weight:900;
+    background:var(--white);box-shadow:4px 4px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+  .btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+  .btn-primary{background:var(--yellow)}
+  .btn-ghost{background:var(--white)}
+  .btn-ok{background:#b8f0a8}
+
+  /* 旗幟標題 */
+  .flagwrap{position:relative;display:inline-block;padding-left:26px}
+  .flagwrap::before{content:"";position:absolute;left:6px;top:-14px;bottom:-60px;width:7px;background:var(--cream);
+    border:3px solid var(--ink);border-radius:6px}
+  .flagwrap::after{content:"";position:absolute;left:0;top:-30px;width:19px;height:19px;background:var(--yellow);border:3px solid var(--ink);border-radius:50%}
+  .flag{position:relative;background:var(--yellow);border:4px solid var(--ink);
+    border-radius:8px 34px 14px 26px / 22px 10px 30px 12px;transform:rotate(-3deg);
+    padding:.18em .7em .28em;box-shadow:6px 7px 0 rgba(29,29,27,.9)}
+  .flag h1{margin:0;font-weight:900;letter-spacing:.06em;line-height:1.15}
+  .flag .yr{position:absolute;right:.6em;bottom:-.1em;font-size:.32em;font-weight:900;transform:translateY(60%);background:var(--cream);
+    border:3px solid var(--ink);border-radius:999px;padding:0 .6em}
+
+  /* 對話框 */
+  .bubble{position:relative;background:var(--white);border:3px solid var(--ink);border-radius:22px 26px 20px 28px;padding:6px 16px;font-weight:700}
+  .bubble.tail::after{content:"";position:absolute;left:24px;bottom:-14px;width:18px;height:18px;background:inherit;
+    border-right:3px solid var(--ink);border-bottom:3px solid var(--ink);transform:skewX(30deg) rotate(45deg);transform-origin:center}
+
+  .doodle{position:absolute;pointer-events:none}
+  .doodle svg{width:100%;height:auto;display:block;overflow:visible}
+
+  /* ---------- 開始畫面 ---------- */
+  #start{position:relative;min-height:100%;display:flex;align-items:center;justify-content:center;padding:6vh 4vw}
+  .start-box{position:relative;max-width:980px;width:100%;text-align:center;z-index:1}
+  .start-box .flagwrap{margin:30px 0 70px}
+  .start-box .flag h1{font-size:clamp(36px,6vw,92px);white-space:nowrap}
+  .start-box .sub{display:inline-block;font-size:clamp(20px,2.4vw,30px);margin:0 0 26px}
+  .tags{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:30px}
+  .tag{background:var(--cream);border:3px solid var(--ink);border-radius:999px;padding:6px 18px;font-size:clamp(16px,1.6vw,21px);font-weight:700}
+  .tag.gold{background:var(--yellow)}
+  .panel{background:var(--cream);border:4px solid var(--ink);border-radius:26px 32px 24px 34px;padding:26px 30px;box-shadow:8px 8px 0 var(--ink)}
+  .class-row{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap}
+  .class-row label{font-size:clamp(22px,2.4vw,32px);font-weight:900}
+  #classInput{font-family:var(--hand);font-size:clamp(28px,3vw,42px);font-weight:900;width:6.5em;text-align:center;padding:8px 14px;
+    border:3px solid var(--ink);border-radius:14px;background:var(--white);color:var(--ink)}
+  #classInput:focus{outline:none;background:var(--lemon)}
+  .steps{margin:22px auto 0;text-align:left;max-width:680px;font-size:clamp(17px,1.8vw,22px);line-height:1.85;padding-left:1.4em}
+  .err{color:#b42318;font-size:20px;font-weight:700;min-height:1.4em;margin-top:8px}
+
+  /* ---------- 遊戲畫面 ---------- */
+  #game{position:relative;height:100vh;min-height:520px;display:flex;flex-direction:column;padding:2.2vh 2vw 2vh;gap:1.4vh}
+  header{position:relative;display:flex;align-items:center;gap:14px;flex-wrap:nowrap;z-index:2;padding-top:14px}
+  header .ttl{cursor:pointer}
+  header .flagwrap::before{bottom:-26px}
+  header .flag h1{font-size:clamp(24px,2.8vw,46px);white-space:nowrap}
+  header .sub{margin:14px 0 0 22px;font-size:clamp(15px,1.4vw,20px);font-weight:700;display:inline-block}
+  .spacer{flex:1}
+  .clock{background:var(--ink);color:var(--yellow);border-radius:20px 24px 18px 26px;padding:6px 20px 8px;text-align:center;box-shadow:4px 4px 0 rgba(0,0,0,.25)}
+  .clock b{display:block;font-size:clamp(30px,3.4vw,54px);font-variant-numeric:tabular-nums;letter-spacing:.04em;line-height:1.05;font-family:"Noto Sans TC",var(--hand);font-weight:900}
+  .clock span{font-size:clamp(13px,1.2vw,17px);color:#fff}
+  .stat{background:var(--white);border:3px solid var(--ink);border-radius:20px 24px 18px 26px;padding:4px 16px 6px;text-align:center;min-width:100px}
+  .stat b{display:block;font-size:clamp(26px,2.8vw,42px);line-height:1.1;font-weight:900}
+  .stat span{font-size:clamp(13px,1.2vw,17px);font-weight:700}
+  .stat.cls{background:var(--blue)}
+  .stat.line{background:#c8f2b8}
+  .stat.prize{background:var(--yellow)}
+  .tools{display:flex;flex-direction:column;gap:6px}
+  .tools .btn{font-size:clamp(13px,1.1vw,16px);padding:4px 10px;white-space:nowrap;border-radius:12px;box-shadow:3px 3px 0 var(--ink)}
+
+  #board{position:relative;z-index:1;flex:1;display:grid;grid-template-columns:repeat(var(--n,4),1fr);grid-template-rows:repeat(var(--n,4),1fr);
+    width:min(100%,calc((100vh - 170px) * 1.6));margin:0 auto;gap:clamp(12px,1.6vw,26px);min-height:0;padding:6px}
+  .card{perspective:1200px;border:none;background:none;padding:0;min-height:90px;transform:rotate(var(--r,0deg))}
+  .card-inner{position:relative;width:100%;height:100%;transition:transform .7s cubic-bezier(.3,.7,.2,1);transform-style:preserve-3d}
+  .card.flipped .card-inner{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    border:4px solid var(--ink);border-radius:18px 24px 16px 26px / 22px 16px 24px 18px;box-shadow:6px 6px 0 var(--ink)}
+  .front{font-weight:900;font-size:calc(clamp(42px,6.4vh,92px) * 4 / var(--n,4));color:var(--ink);overflow:hidden}
+  .front .n{position:relative;z-index:1;font-family:var(--hand)}
+  .front::before{content:"";position:absolute;width:62%;aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.75);border:3px dashed rgba(29,29,27,.35)}
+  .front .q{position:absolute;right:10px;top:6px;font-size:.3em;opacity:.55}
+  .front .pin{position:absolute;left:50%;top:8px;transform:translateX(-50%) rotate(-3deg);z-index:2;font-size:max(14px,.2em);background:var(--ink);color:var(--yellow);border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .card:hover .front{filter:brightness(1.04)}
+  .card:hover{transform:rotate(var(--r,0deg)) translateY(-3px)}
+  .back{transform:rotateY(180deg);background:var(--white);font-size:calc(clamp(16px,2vh,24px) * 4 / var(--n,4));gap:2px;font-weight:700}
+  .back .ico{font-size:clamp(30px,4.6vh,62px);line-height:1.1}
+  .back .num{font-weight:900}
+  .back.pending{background:var(--cream);border-style:dashed}
+  .back.done{background:#c8f2b8}
+  .back.is-prize{background:var(--yellow)}
+  .card.lined .back{background:#8fe07a}
+  .card.lined .back.is-prize{background:var(--yellow);outline:5px solid #2f9e44;outline-offset:-10px}
+  .card.lined.newline .back{animation:wiggle .18s ease-in-out 8 alternate}
+  @keyframes wiggle{from{transform:rotateY(180deg) rotate(-2deg)}to{transform:rotateY(180deg) rotate(2deg) scale(1.03)}}
+
+
+  /* ---------- 指定題牌 ---------- */
+  .card.fixed{z-index:2;animation:fixPulse 1.6s ease-in-out infinite}
+  @keyframes fixPulse{0%,100%{transform:rotate(var(--r,0deg)) scale(1)}50%{transform:rotate(var(--r,0deg)) scale(1.035)}}
+  .card.fixed .front{background:repeating-linear-gradient(-45deg,#ff5d5d 0 22px,#ff7b7b 22px 44px);
+    box-shadow:0 0 0 7px var(--yellow),0 0 0 11px var(--ink),10px 10px 0 4px var(--ink)}
+  .card.fixed .front::before{background:rgba(255,255,255,.92);border:4px solid var(--ink)}
+  .card.fixed .front .pin{top:10px;font-size:max(18px,.27em);background:var(--yellow);color:var(--ink);border:3px solid var(--ink);
+    padding:3px 16px;box-shadow:3px 3px 0 var(--ink)}
+  .card.fixed .front .stamp{position:absolute;right:10px;bottom:10px;z-index:2;width:3em;height:3em;font-size:max(15px,.2em);white-space:nowrap;letter-spacing:.05em;
+    border-radius:50%;background:var(--white);color:#d6336c;border:4px solid #d6336c;display:grid;place-items:center;
+    transform:rotate(-14deg);font-weight:900;box-shadow:0 0 0 3px var(--white)}
+  .card.fixed .back{box-shadow:0 0 0 7px var(--yellow),0 0 0 11px var(--ink),10px 10px 0 4px var(--ink)}
+  .card.fixed .back.pending{background:#ffe3e3}
+  .fixed-banner{margin:18px 0 6px;background:repeating-linear-gradient(-45deg,#ff5d5d 0 22px,#ff7b7b 22px 44px);color:#fff;
+    border:4px solid var(--ink);box-shadow:6px 6px 0 var(--ink);border-radius:18px 30px 16px 28px;padding:10px 24px;
+    font-size:clamp(28px,3.6vw,52px);font-weight:900;text-align:center;transform:rotate(-1deg);
+    text-shadow:3px 3px 0 var(--ink),-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink)}
+
+  /* ---------- 計分 ---------- */
+  .b-stats .stat.score{grid-column:span 2;background:var(--yellow);display:flex;align-items:baseline;justify-content:center;gap:10px}
+  .b-stats .stat.score b{font-size:clamp(30px,3vw,50px)}
+  .b-stats .stat.score span{font-size:clamp(15px,1.3vw,20px)}
+  .pts-badge{display:inline-block;margin-left:10px;border:3px solid var(--ink);border-radius:999px;padding:4px 16px;font-weight:900;font-size:clamp(18px,1.8vw,24px);vertical-align:top}
+  .pts-badge.l1{background:#d3f9d8}.pts-badge.l2{background:#fff3bf}.pts-badge.l3{background:#ffc9c9}.pts-badge.p{background:var(--yellow)}
+  .back .gain{font-weight:900;font-size:1.25em;background:var(--yellow);border:3px solid var(--ink);border-radius:999px;padding:0 12px;margin-bottom:2px}
+  #toast{position:fixed;left:50%;top:22%;transform:translate(-50%,0) scale(.6);opacity:0;z-index:36;pointer-events:none;
+    background:var(--yellow);border:5px solid var(--ink);box-shadow:8px 8px 0 var(--ink);border-radius:20px 30px 18px 28px;
+    font-weight:900;font-size:clamp(40px,6vw,90px);padding:6px 36px;transition:all .3s cubic-bezier(.2,1.6,.4,1)}
+  #toast.show{opacity:1;transform:translate(-50%,-20px) scale(1)}
+
+  /* ---------- 班級欄：空白時閃框＋手指 ---------- */
+  .cls-wrap{position:relative;display:inline-flex;align-items:center}
+  .cls-wrap .point{position:absolute;right:100%;margin-right:6px;font-size:clamp(30px,3vw,44px);line-height:1;pointer-events:none;
+    animation:poke .7s ease-in-out infinite;display:none}
+  .cls-wrap.empty .point{display:block}
+  .cls-wrap.empty input{animation:blinkBox 1s ease-in-out infinite}
+  @keyframes poke{0%,100%{transform:translateX(-8px)}50%{transform:translateX(4px)}}
+  @keyframes blinkBox{0%,100%{border-color:var(--ink);box-shadow:0 0 0 0 rgba(255,210,31,0);background:var(--white)}
+    50%{border-color:#e8590c;box-shadow:0 0 0 7px rgba(255,210,31,.95);background:var(--lemon)}}
+  .class-row label{margin-right:52px}
+  .post-row .cls-wrap{margin-left:50px}
+
+  /* ---------- 首頁 QR ---------- */
+  #homeQR{position:fixed;inset:0;background:rgba(29,29,27,.55);display:flex;align-items:center;justify-content:center;z-index:45;padding:2vh 2vw}
+  .hq-box{background:var(--cream);border:5px solid var(--ink);box-shadow:12px 12px 0 var(--ink);border-radius:28px 36px 26px 34px;
+    padding:30px 40px 26px;text-align:center;max-height:96vh;overflow:auto}
+  .hq-box .flagwrap{margin:16px 0 20px}
+  .hq-box .flagwrap::before{bottom:-10px}
+  .hq-box #hqClose{display:block;margin:0 auto}
+  .hq-box .flag h1{font-size:clamp(28px,3.4vw,52px)}
+  .hq-qr{background:#fff;border:4px solid var(--ink);border-radius:20px;padding:14px;width:min(62vh,80vw);margin:0 auto}
+  .hq-qr svg{width:100%;height:auto;display:block}
+  .hq-url{font-weight:700;font-size:clamp(14px,1.4vw,20px);margin:14px 0 8px;word-break:break-all}
+  .hq-steps{display:inline-block;background:var(--yellow);border:3px solid var(--ink);border-radius:999px;padding:6px 20px;font-weight:900;font-size:clamp(17px,1.8vw,26px);margin-bottom:16px}
+  /* ---------- 題目視窗 ---------- */
+  #modal{position:fixed;inset:0;background:rgba(29,29,27,.45);display:flex;align-items:center;justify-content:center;padding:3vh 3vw;z-index:20}
+  .sheet{background:var(--cream);border:5px solid var(--ink);border-radius:28px 36px 26px 34px;box-shadow:12px 12px 0 var(--ink);
+    width:min(1280px,100%);max-height:94vh;overflow:auto;padding:clamp(22px,3.2vw,48px);position:relative;animation:pop .35s ease-out}
+  @keyframes pop{from{transform:scale(.9) rotate(-1deg);opacity:0}to{transform:none;opacity:1}}
+  .close{position:absolute;top:16px;right:18px;background:var(--white);border:3px solid var(--ink);border-radius:50%;width:54px;height:54px;font-size:30px;line-height:1;box-shadow:3px 3px 0 var(--ink)}
+  .badge{display:inline-block;background:var(--blue);border:3px solid var(--ink);font-weight:900;border-radius:999px;padding:4px 18px;font-size:clamp(18px,1.8vw,24px)}
+  .prize-banner{margin:18px 0 6px;background:var(--yellow);border:4px solid var(--ink);box-shadow:6px 6px 0 var(--ink);
+    border-radius:18px 30px 16px 28px;padding:14px 24px;font-size:clamp(30px,4.2vw,60px);font-weight:900;text-align:center;
+    transform:rotate(-1deg);animation:bounce .9s ease-in-out infinite alternate}
+  @keyframes bounce{to{transform:rotate(1deg) scale(1.02)}}
+  .qbody{display:grid;grid-template-columns:1fr auto;gap:clamp(20px,3vw,44px);align-items:start;margin-top:18px}
+  .q{font-size:clamp(30px,3.6vw,56px);font-weight:900;line-height:1.45;margin:0}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
+  .opt{background:var(--white);border:3px solid var(--ink);border-radius:16px 20px 14px 22px;padding:12px 18px;font-size:clamp(24px,2.6vw,38px);font-weight:700;display:flex;gap:12px;align-items:center}
+  .opt .k{background:var(--ink);color:var(--yellow);border-radius:10px;min-width:1.6em;text-align:center}
+  .opt.correct{background:#c8f2b8}
+  .ans-row{margin-top:24px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .ans{font-size:clamp(24px,2.6vw,38px);font-weight:900;background:#c8f2b8;border:3px solid var(--ink);border-radius:16px;padding:8px 20px}
+  .padlet{background:var(--mint);border:3px solid var(--ink);border-radius:22px 26px 20px 28px;padding:16px;text-align:center;width:clamp(220px,19vw,300px);transform:rotate(1deg)}
+  .padlet h3{margin:0 0 10px;font-size:clamp(20px,2vw,28px)}
+  .qr{background:#fff;border:3px solid var(--ink);border-radius:14px;padding:10px;display:flex;justify-content:center}
+  .qr img,.qr svg{width:100%;height:auto;max-width:240px;display:block}
+  .padlet .hint{font-size:clamp(15px,1.4vw,19px);margin-top:10px;line-height:1.5;font-weight:700}
+  .padlet a{display:inline-block;margin-top:8px;font-size:16px;color:#1d4ed8;word-break:break-all;font-weight:700}
+  .padlet .none{font-size:18px;padding:30px 6px}
+  .sheet-foot{margin-top:26px;display:flex;justify-content:flex-end;gap:14px;flex-wrap:wrap}
+
+  #confirm{position:fixed;inset:0;background:rgba(29,29,27,.45);display:flex;align-items:center;justify-content:center;z-index:30}
+  #confirm .box{background:var(--cream);border:4px solid var(--ink);box-shadow:8px 8px 0 var(--ink);border-radius:24px 30px 22px 28px;padding:30px 38px;max-width:560px;text-align:center}
+  #confirm p{font-size:24px;margin:0 0 24px;line-height:1.6;font-weight:700}
+  #confirm .row{display:flex;gap:14px;justify-content:center}
+
+  #fx{position:fixed;inset:0;pointer-events:none;z-index:40}
+  #bingo{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-4deg) scale(.6);opacity:0;z-index:35;pointer-events:none;
+    background:var(--yellow);border:6px solid var(--ink);box-shadow:12px 12px 0 var(--ink);font-weight:900;font-size:clamp(50px,9vw,140px);
+    padding:16px 60px;border-radius:24px 40px 20px 36px;transition:all .35s cubic-bezier(.2,1.6,.4,1);white-space:nowrap}
+  #bingo.show{opacity:1;transform:translate(-50%,-50%) rotate(-4deg) scale(1)}
+
+
+  /* ---------- 排行榜 ---------- */
+  #rank{position:relative;height:100vh;min-height:560px;display:flex;flex-direction:column;padding:2.2vh 2vw 1.6vh;gap:1.2vh}
+  #rank header .flag{background:#ffb648}
+  .rank-wrap{flex:1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:2.4vw;min-height:0;position:relative;z-index:1}
+  .podium-area{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:0;overflow:hidden}
+  .podium{max-height:100%}
+  .podium{display:grid;grid-template-columns:1fr 1.08fr 1fr;align-items:end;gap:0;width:100%}
+  .pcol{display:flex;flex-direction:column;align-items:center;min-width:0}
+  .pname{font-weight:900;font-size:clamp(34px,4.4vw,72px);line-height:1;background:var(--white);border:4px solid var(--ink);
+    border-radius:20px 26px 18px 28px;padding:6px 18px 10px;position:relative;margin-bottom:12px;white-space:nowrap}
+  .pname::after{content:"";position:absolute;left:50%;bottom:-13px;width:18px;height:18px;margin-left:-9px;background:inherit;
+    border-right:4px solid var(--ink);border-bottom:4px solid var(--ink);transform:rotate(45deg)}
+  .p1 .pname{background:var(--yellow);font-size:clamp(42px,5.4vw,90px)}
+  .pfig{width:60%;max-width:170px}
+  .p1 .pfig{width:68%;max-width:200px}
+  .pfig svg,.pblock svg{display:block;width:100%;height:auto;overflow:visible}
+  .pblock{width:100%;position:relative;margin-top:-6px}
+  .pstat{position:absolute;left:0;right:0;bottom:9%;text-align:center;font-weight:900;font-size:clamp(14px,1.35vw,21px);line-height:1.35}
+  .pstat b{font-size:1.4em}
+  .pcol.empty .pname{opacity:.35}
+  .crayon-trophy{position:absolute;right:0;top:0;width:clamp(90px,8.5vw,150px);transform:rotate(8deg);pointer-events:none}
+  .rank-list{display:flex;flex-direction:column;gap:clamp(6px,.9vh,12px);min-height:0;overflow:hidden;align-content:start}
+  .rank-list.two{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:min-content;column-gap:14px}
+  .rrow{display:grid;grid-template-columns:auto auto 1fr auto auto;align-items:center;gap:12px;background:var(--cream);
+    border:3px solid var(--ink);border-radius:16px 22px 14px 20px;padding:6px 14px;box-shadow:3px 3px 0 var(--ink)}
+  .rank-list.two .rrow{grid-template-columns:auto auto 1fr auto;gap:8px;padding:4px 10px}
+  .rank-list.two .rrow .rp{display:none}
+  .rank-list.two{row-gap:clamp(4px,.6vh,8px)}
+  .rank-list.two .rrow{padding:2px 10px;border-width:2.5px;box-shadow:2px 2px 0 var(--ink)}
+  .rank-list.two .rc{font-size:clamp(17px,1.6vw,26px);min-width:2.8em}
+  .rank-list.two .rn{width:1.6em;height:1.6em;font-size:clamp(13px,1.1vw,18px);border-width:2.5px}
+  .rank-list.two .rl{font-size:clamp(14px,1.2vw,19px)}
+  .rank-list.two .rbar{height:clamp(12px,1.4vh,18px);border-width:2.5px}
+  .rank-list.three{grid-template-columns:1fr 1fr 1fr}
+  .rank-list.three .rbar{display:none}
+  .rank-list.three .rrow{grid-template-columns:auto 1fr auto}
+  .rrow .rn{width:1.9em;height:1.9em;border-radius:50%;border:3px solid var(--ink);background:var(--white);display:grid;place-items:center;font-weight:900;font-size:clamp(16px,1.5vw,24px)}
+  .rrow .rc{font-weight:900;font-size:clamp(22px,2.2vw,36px);min-width:3.2em}
+  .rbar{height:clamp(16px,1.9vh,24px);border:3px solid var(--ink);border-radius:12px;background:var(--white);overflow:hidden;position:relative}
+  .rbar i{position:absolute;left:0;top:0;bottom:0;background:#8fe07a;border-right:3px solid var(--ink);
+    background-image:repeating-linear-gradient(-45deg,rgba(255,255,255,.35) 0 5px,transparent 5px 10px)}
+  .rrow .rl,.rrow .rp{font-weight:900;font-size:clamp(16px,1.5vw,24px);white-space:nowrap}
+  .rank-empty{background:var(--cream);border:4px dashed var(--ink);border-radius:24px;padding:40px;text-align:center;font-size:clamp(22px,2.4vw,34px);font-weight:900}
+  .rank-foot{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-weight:700;font-size:clamp(14px,1.3vw,18px);position:relative;z-index:1}
+  .rank-foot .pill{background:var(--cream);border:2px solid var(--ink);border-radius:999px;padding:3px 14px}
+  .live-dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#e03131;border:2px solid var(--ink);margin-right:6px;animation:blink 1.2s infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .rrow.me{background:#dbe8ff}
+  .pcol.me .pname{background:#dbe8ff}
+  .stat.rk{background:#ffd3c4}
+  #pwInput{font:inherit;font-size:22px;padding:8px 12px;border:3px solid var(--ink);border-radius:12px;width:100%;margin-bottom:18px}
+  @media (max-width:1000px){ .rank-wrap{grid-template-columns:1fr} .rank-list.two{grid-template-columns:1fr} }
+
+  /* ---------- 主頁面即時排行 ---------- */
+  .start-grid{position:relative;z-index:1;width:100%;max-width:1000px}
+  .start-grid .start-box{max-width:none}
+  .start-grid .start-box .flag h1{font-size:clamp(36px,6vw,92px)}
+  .mini-rank{background:var(--cream);border:4px solid var(--ink);border-radius:26px 32px 24px 34px;box-shadow:8px 8px 0 var(--ink);
+    padding:18px 18px 20px;display:flex;flex-direction:column;gap:10px;transform:rotate(.8deg);max-height:86vh}
+  .mini-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:3px dashed var(--ink);padding-bottom:8px}
+  .mini-title{font-size:clamp(24px,2.3vw,36px);font-weight:900}
+  .mini-sub{font-size:clamp(13px,1.1vw,16px);font-weight:700}
+  .mini-list{display:flex;flex-direction:column;gap:8px;overflow:hidden}
+  .mrow{display:grid;grid-template-columns:2.2em auto 1fr auto;align-items:center;gap:10px;background:var(--white);border:3px solid var(--ink);
+    border-radius:14px 18px 12px 16px;padding:5px 12px}
+  .mrow .mn{font-size:clamp(20px,1.9vw,30px);font-weight:900;text-align:center;line-height:1}
+  .mrow .mc{font-size:clamp(22px,2.1vw,34px);font-weight:900;min-width:2.8em}
+  .mrow .mb{height:14px;border:2.5px solid var(--ink);border-radius:10px;background:var(--cream);overflow:hidden;position:relative}
+  .mrow .mb i{position:absolute;left:0;top:0;bottom:0;background:#8fe07a;border-right:2.5px solid var(--ink)}
+  .mrow .ml{font-size:clamp(16px,1.4vw,22px);font-weight:900;white-space:nowrap}
+  .mrow.g1{background:var(--yellow)} .mrow.g2{background:var(--blue)} .mrow.g3{background:var(--pink)}
+  .mrow.me{outline:4px solid #1d4ed8;outline-offset:2px}
+  .mini-empty{border:3px dashed var(--ink);border-radius:18px;padding:26px 14px;text-align:center;font-size:clamp(18px,1.7vw,24px);font-weight:900;line-height:1.6}
+  .mini-more{align-self:center;font-size:clamp(17px,1.6vw,22px);padding:8px 20px}
+  @media (max-width:1000px){ .start-grid{grid-template-columns:1fr} .mini-rank{transform:none} }
+
+  /* ---------- 遊戲頁：牌面＋戰況進度 ---------- */
+  .play-wrap{flex:1;display:grid;grid-template-columns:minmax(0,1fr) clamp(240px,23vw,380px);grid-template-rows:minmax(0,1fr);gap:clamp(12px,1.6vw,26px);min-height:0;position:relative;z-index:1}
+  .play-wrap #board{width:min(100%,calc((100vh - 170px) * 1.45));height:100%;padding:4px 10px 10px 4px}
+  .battle{background:var(--cream);border:4px solid var(--ink);border-radius:24px 30px 22px 28px;box-shadow:7px 7px 0 var(--ink);
+    padding:12px 12px 14px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden;align-self:stretch}
+  .b-cls{display:flex;align-items:baseline;justify-content:center;gap:10px;font-weight:900}
+  .b-cls span{font-size:clamp(15px,1.3vw,20px)}
+  .b-cls b{font-size:clamp(34px,3.4vw,56px);line-height:1;background:var(--blue);border:3px solid var(--ink);border-radius:14px 18px 12px 16px;padding:2px 14px}
+  .b-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .b-stats .stat{min-width:0;padding:2px 6px 4px}
+  .b-stats .stat b{font-size:clamp(22px,2.2vw,36px)}
+  .b-head{display:flex;justify-content:space-between;align-items:baseline;gap:6px;flex-wrap:wrap;border-top:3px dashed var(--ink);padding-top:8px;font-weight:900;font-size:clamp(20px,1.9vw,30px)}
+  .b-head small{font-size:clamp(11px,.9vw,14px);font-weight:700}
+  .battle .mini-list{gap:6px;flex:1;min-height:0;overflow:hidden}
+  .battle .mrow{grid-template-columns:1.8em auto 1fr auto;gap:6px;padding:3px 8px}
+  .battle .mrow .mc{font-size:clamp(18px,1.6vw,26px);min-width:2.6em}
+  .battle .mrow .mn{font-size:clamp(16px,1.4vw,22px)}
+  .battle .mrow .ml{font-size:clamp(14px,1.15vw,18px)}
+  .battle .mrow .mb{height:11px}
+  .b-gap{text-align:center;font-weight:900;line-height:.6;letter-spacing:.2em}
+  #battleMe{flex:none;display:flex;flex-direction:column;gap:4px}
+  @media (max-width:680px){
+    #game{height:auto}
+    .play-wrap{grid-template-columns:1fr}
+    .play-wrap #board{width:100%;grid-template-rows:none;grid-auto-rows:minmax(100px,auto)}
+  }
+
+  /* ---------- 題目卡：任務名稱與工具 ---------- */
+  .mtitle{margin:14px 0 4px;font-size:clamp(34px,4vw,62px);font-weight:900;line-height:1.15}
+  .sheet .q{font-size:clamp(24px,2.7vw,40px);font-weight:700}
+  .tool{margin-top:18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .draw-box{min-width:7em;text-align:center;font-size:clamp(34px,4vw,64px);font-weight:900;background:var(--white);border:4px solid var(--ink);
+    border-radius:18px 24px 16px 22px;padding:6px 22px;box-shadow:5px 5px 0 var(--ink)}
+  .draw-box.done{background:var(--yellow)}
+  .draw-box.spin{animation:jit .08s linear infinite}
+  @keyframes jit{50%{transform:translateY(-3px) rotate(-1deg)}}
+  .timer-box{font-variant-numeric:tabular-nums;font-family:"Noto Sans TC",var(--hand);font-weight:900;font-size:clamp(52px,6vw,96px);
+    background:var(--ink);color:var(--yellow);border-radius:20px;padding:0 26px;line-height:1.25}
+  .timer-box.low{color:#ff6b6b}
+  .timer-box.up{animation:flash .5s steps(2) infinite}
+  @keyframes flash{50%{background:#e03131;color:#fff}}
+  .share-tag{display:inline-block;max-width:100%;white-space:nowrap;margin:4px 0 8px;font-weight:900;font-size:clamp(13px,1.1vw,17px);border:3px solid var(--ink);border-radius:999px;padding:2px 12px;background:var(--yellow)}
+  .share-tag.padlet{background:#d0ebff}
+  .padlet .alt{display:block;margin-top:6px;font-size:15px}
+
+  /* ---------- iPad 上傳頁 ---------- */
+  #post{min-height:100%;padding:3vh 4vw 6vh}
+  #post header{justify-content:center;margin-bottom:26px}
+  #post .flag h1{font-size:clamp(26px,5vw,44px)}
+  .post-box{max-width:760px;margin:0 auto;background:var(--cream);border:4px solid var(--ink);border-radius:26px 32px 24px 30px;box-shadow:8px 8px 0 var(--ink);padding:22px 22px 26px}
+  .post-task h2{margin:8px 0 4px;font-size:clamp(26px,4.4vw,38px)}
+  .post-task p{margin:0 0 10px;font-size:clamp(17px,2.6vw,22px);line-height:1.6}
+  .topic-chip{display:inline-block;background:var(--yellow);border:3px solid var(--ink);border-radius:14px;padding:4px 14px;font-weight:900;font-size:22px}
+  .post-row{display:flex;align-items:center;gap:12px;margin-top:16px;font-weight:900;font-size:20px;flex-wrap:wrap}
+  .post-row.col{flex-direction:column;align-items:stretch}
+  .post-lbl{display:flex;justify-content:space-between}
+  .post-lbl small{font-weight:700;color:var(--muted)}
+  #pCls{font-family:var(--hand);font-size:28px;font-weight:900;width:5.5em;text-align:center;padding:6px 10px;border:3px solid var(--ink);border-radius:12px}
+  #pText{font:inherit;font-size:20px;padding:10px 12px;border:3px solid var(--ink);border-radius:14px;resize:vertical;background:var(--white)}
+  .file-btn{text-align:center;align-self:flex-start}
+  .thumbs{display:flex;gap:10px;flex-wrap:wrap}
+  .thumb{position:relative;width:120px;height:120px;border:3px solid var(--ink);border-radius:12px;overflow:hidden;background:#fff}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .thumb button{position:absolute;top:4px;right:4px;width:30px;height:30px;border-radius:50%;border:2px solid var(--ink);background:#fff;font-weight:900;line-height:1}
+  .post-send{width:100%;margin-top:8px;font-size:26px}
+  .post-send[disabled]{opacity:.6}
+  .post-note{font-size:15px;color:var(--muted);margin:10px 0 0;text-align:center}
+  .post-done{text-align:center;padding:20px 0}
+  .post-done .big{font-size:44px;font-weight:900}
+  .post-done p{font-size:20px}
+  .post-done .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .post-done a.btn{text-decoration:none}
+
+  /* ---------- 全校展示牆 ---------- */
+  #wall{min-height:100%;padding:2.2vh 2vw 3vh;display:flex;flex-direction:column;gap:1.4vh}
+  .wflag{background:#9ad1ff!important}
+  .wall-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:relative;z-index:1}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{border:3px solid var(--ink);border-radius:999px;background:var(--white);padding:4px 14px;font-weight:900;font-size:clamp(14px,1.2vw,18px)}
+  .chip.on{background:var(--ink);color:var(--yellow)}
+  #wCls{font:inherit;font-weight:900;font-size:16px;border:3px solid var(--ink);border-radius:12px;padding:5px 10px;background:var(--white)}
+  .wall-bar .pill{background:var(--cream);border:2px solid var(--ink);border-radius:999px;padding:3px 14px;font-weight:700;font-size:15px}
+  .wall-bar .pill.teach{background:#ffd8a8}
+  .wall-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;align-items:start;position:relative;z-index:1}
+  .wcard{background:var(--cream);border:4px solid var(--ink);border-radius:20px 26px 18px 24px;
+    box-shadow:6px 6px 0 var(--ink);padding:12px;min-width:0}
+  .wcard.new{animation:pop .5s ease-out}
+  .wcard.hid{opacity:.45;border-style:dashed}
+  .wtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .wcls{font-weight:900;font-size:26px;background:var(--blue);border:3px solid var(--ink);border-radius:12px;padding:0 10px}
+  .wtask{font-weight:900;font-size:16px;border:3px solid var(--ink);border-radius:999px;padding:1px 10px}
+  .wtime{margin-left:auto;font-size:14px;font-weight:700;color:var(--muted)}
+  .wphotos{display:grid;gap:6px}
+  .wphotos.n2{grid-template-columns:1fr 1fr}
+  .wphotos.n3{grid-template-columns:1fr 1fr 1fr}
+  .wph{background:#eee6d6;border:3px solid var(--ink);border-radius:12px;min-height:120px;overflow:hidden;display:grid;place-items:center;color:var(--muted);font-weight:700;cursor:zoom-in}
+  .wph img{width:100%;height:auto;display:block}
+  .wtext{font-size:clamp(18px,1.5vw,22px);font-weight:700;line-height:1.5;margin-top:8px;white-space:pre-wrap;word-break:break-word}
+  .whide{margin-top:8px;width:100%;font-size:17px;padding:6px}
+  .wempty{grid-column:1/-1;background:var(--cream);border:4px dashed var(--ink);border-radius:24px;padding:40px;text-align:center;font-size:clamp(20px,2.2vw,30px);font-weight:900}
+  #zoom{position:fixed;inset:0;background:rgba(29,29,27,.85);display:flex;align-items:center;justify-content:center;z-index:50;padding:3vh 3vw;cursor:zoom-out}
+  #zoom img{max-width:100%;max-height:100%;border:5px solid #fff;border-radius:12px}
+  @media (max-width:640px){ #wall header .clock{display:none} .wall-grid{grid-template-columns:1fr} }
+  @media (max-width:1100px){ header{flex-wrap:wrap} }
+  @media (max-width:760px){
+    #board{grid-template-rows:none;grid-auto-rows:90px;width:100%}
+    .qbody{grid-template-columns:1fr}
+    .padlet{width:100%}
+    .opts{grid-template-columns:1fr}
+    .doodle{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- 原創手繪小插圖（重複使用） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+
+    <filter id="crayon" x="-8%" y="-8%" width="116%" height="116%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="5" xChannelSelector="R" yChannelSelector="G" result="wob"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="1" seed="9" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -3.2 1.15" result="flecks"/>
+      <feComposite in="flecks" in2="wob" operator="in" result="fl"/>
+      <feMerge><feMergeNode in="wob"/><feMergeNode in="fl"/></feMerge>
+    </filter>
+    <symbol id="fig-cheer" viewBox="0 0 120 150">
+      <path d="M30 70 L14 30 M90 70 L106 30" stroke="#1d1d1b" stroke-width="6" stroke-linecap="round" fill="none"/>
+      <circle cx="11" cy="24" r="7" fill="#fffdf2" stroke="#1d1d1b" stroke-width="4"/><circle cx="109" cy="24" r="7" fill="#fffdf2" stroke="#1d1d1b" stroke-width="4"/>
+      <path d="M34 66 Q60 56 86 66 L92 140 H28 Z" fill="#fffdf2" stroke="#1d1d1b" stroke-width="5" stroke-linejoin="round"/>
+      <circle cx="60" cy="38" r="27" fill="#fffdf2" stroke="#1d1d1b" stroke-width="5"/>
+      <path d="M48 30 Q51 25 54 30 M66 30 Q69 25 72 30" stroke="#1d1d1b" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M46 42 Q60 60 74 42 Z" fill="#ff8a8a" stroke="#1d1d1b" stroke-width="3.5" stroke-linejoin="round"/>
+      <circle cx="42" cy="44" r="4" fill="#ffb3b3"/><circle cx="78" cy="44" r="4" fill="#ffb3b3"/>
+      <path d="M48 66 L60 88 L72 66" stroke="#1d1d1b" stroke-width="3" fill="none"/>
+      <circle cx="60" cy="96" r="11" fill="var(--medal,#ffd21f)" stroke="#1d1d1b" stroke-width="4"/>
+    </symbol>
+    <symbol id="fig-wave" viewBox="0 0 120 150">
+      <path d="M32 74 L12 104 M88 72 L108 36" stroke="#1d1d1b" stroke-width="6" stroke-linecap="round" fill="none"/>
+      <circle cx="111" cy="30" r="7" fill="#fffdf2" stroke="#1d1d1b" stroke-width="4"/><circle cx="10" cy="108" r="7" fill="#fffdf2" stroke="#1d1d1b" stroke-width="4"/>
+      <path d="M34 66 Q60 56 86 66 L92 140 H28 Z" fill="#fffdf2" stroke="#1d1d1b" stroke-width="5" stroke-linejoin="round"/>
+      <circle cx="60" cy="38" r="27" fill="#fffdf2" stroke="#1d1d1b" stroke-width="5"/>
+      <circle cx="50" cy="32" r="3.5" fill="#1d1d1b"/><circle cx="70" cy="32" r="3.5" fill="#1d1d1b"/>
+      <path d="M47 44 Q60 56 73 44" stroke="#1d1d1b" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <circle cx="42" cy="44" r="4" fill="#ffb3b3"/><circle cx="78" cy="44" r="4" fill="#ffb3b3"/>
+      <path d="M48 66 L60 88 L72 66" stroke="#1d1d1b" stroke-width="3" fill="none"/>
+      <circle cx="60" cy="96" r="11" fill="var(--medal,#c9d1d9)" stroke="#1d1d1b" stroke-width="4"/>
+    </symbol>
+    <symbol id="fig-hop" viewBox="0 0 120 150">
+      <path d="M32 70 L20 40 M88 70 L100 40" stroke="#1d1d1b" stroke-width="6" stroke-linecap="round" fill="none"/>
+      <circle cx="18" cy="34" r="7" fill="#fffdf2" stroke="#1d1d1b" stroke-width="4"/><circle cx="102" cy="34" r="7" fill="#fffdf2" stroke="#1d1d1b" stroke-width="4"/>
+      <path d="M34 66 Q60 56 86 66 L92 140 H28 Z" fill="#fffdf2" stroke="#1d1d1b" stroke-width="5" stroke-linejoin="round"/>
+      <circle cx="60" cy="38" r="27" fill="#fffdf2" stroke="#1d1d1b" stroke-width="5"/>
+      <path d="M46 33 L54 29 M74 33 L66 29" stroke="#1d1d1b" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M50 44 Q60 52 70 44" stroke="#1d1d1b" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <circle cx="42" cy="44" r="4" fill="#ffb3b3"/><circle cx="78" cy="44" r="4" fill="#ffb3b3"/>
+      <path d="M48 66 L60 88 L72 66" stroke="#1d1d1b" stroke-width="3" fill="none"/>
+      <circle cx="60" cy="96" r="11" fill="var(--medal,#e8a066)" stroke="#1d1d1b" stroke-width="4"/>
+    </symbol>
+    <symbol id="d-crayon-trophy" viewBox="0 0 200 230">
+      <g filter="url(#crayon)">
+        <path d="M44 30 H156 C158 90 140 128 100 132 C60 128 42 90 44 30 Z" fill="#ffc14a" stroke="#e07a1f" stroke-width="7" stroke-linejoin="round"/>
+        <path d="M46 46 C16 40 10 70 22 88 C30 100 44 100 52 94 M154 46 C184 40 190 70 178 88 C170 100 156 100 148 94" fill="none" stroke="#ffc14a" stroke-width="13" stroke-linecap="round"/>
+        <path d="M88 132 L84 168 H116 L112 132 Z" fill="#ffc14a" stroke="#e07a1f" stroke-width="6"/>
+        <rect x="50" y="168" width="100" height="40" rx="6" fill="#ffd36b" stroke="#e07a1f" stroke-width="6"/>
+        <text x="100" y="95" text-anchor="middle" font-size="58" font-weight="900" fill="#f0507a" font-family="Arial Rounded MT Bold,Arial,sans-serif">#1</text>
+        <path d="M30 14 l6 -14 M100 6 v-6 M170 14 l-6 -14" stroke="#4aa8e0" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="16" cy="150" r="7" fill="#f05050"/><circle cx="186" cy="140" r="6" fill="#f05050"/>
+      </g>
+    </symbol>
+    <symbol id="d-paper" viewBox="0 0 120 100">
+      <path d="M12 18 L98 10 L106 82 L20 90 Z" fill="#fffdf2" stroke="#1d1d1b" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M26 26 L62 23 L64 44 L28 47 Z" fill="#ffe14a" stroke="#1d1d1b" stroke-width="3"/>
+      <path d="M72 24 L92 22 M73 32 L93 30 M74 40 L94 38 M30 56 L96 50 M31 64 L97 58 M32 72 L98 66" stroke="#1d1d1b" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="d-pencil" viewBox="0 0 140 40">
+      <path d="M10 12 L104 6 L106 30 L12 34 Z" fill="#ffe14a" stroke="#1d1d1b" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M104 6 L132 17 L106 30 Z" fill="#ffd3c4" stroke="#1d1d1b" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M124 14 L132 17 L125 21 Z" fill="#1d1d1b"/>
+      <path d="M10 12 L2 13 L4 34 L12 34" fill="#ff9e9e" stroke="#1d1d1b" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M16 22 L100 17" stroke="#1d1d1b" stroke-width="2.5" stroke-dasharray="2 8"/>
+    </symbol>
+    <symbol id="d-glass" viewBox="0 0 100 100">
+      <circle cx="40" cy="40" r="26" fill="#cfe6ff" stroke="#1d1d1b" stroke-width="5"/>
+      <path d="M28 32 Q34 24 44 24" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M60 60 L88 88" stroke="#1d1d1b" stroke-width="11" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="d-star" viewBox="0 0 60 60">
+      <path d="M30 4 C33 22 38 27 56 30 C38 33 33 38 30 56 C27 38 22 33 4 30 C22 27 27 22 30 4 Z" fill="#ffe14a" stroke="#1d1d1b" stroke-width="3.5" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="d-trophy" viewBox="0 0 100 100">
+      <path d="M28 14 H72 V40 C72 56 62 64 50 64 C38 64 28 56 28 40 Z" fill="#ffe14a" stroke="#1d1d1b" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M28 22 H14 C14 40 22 46 30 46 M72 22 H86 C86 40 78 46 70 46" fill="none" stroke="#1d1d1b" stroke-width="5"/>
+      <path d="M44 64 L42 78 H58 L56 64 M32 90 H68 V80 H32 Z" fill="#fffdf2" stroke="#1d1d1b" stroke-width="5" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="d-sprout" viewBox="0 0 80 90">
+      <path d="M40 86 V44" stroke="#1d1d1b" stroke-width="5" stroke-linecap="round"/>
+      <path d="M40 50 C18 50 8 34 10 18 C28 18 40 30 40 50 Z" fill="#8fe07a" stroke="#1d1d1b" stroke-width="4"/>
+      <path d="M40 44 C58 44 70 30 70 12 C52 12 40 26 40 44 Z" fill="#c8f2b8" stroke="#1d1d1b" stroke-width="4"/>
+    </symbol>
+    <symbol id="d-squiggle" viewBox="0 0 120 30">
+      <path d="M4 18 C16 2 26 30 40 14 C54 -2 62 30 78 14 C92 0 102 28 116 12" fill="none" stroke="#1d1d1b" stroke-width="4" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- 開始畫面 -->
+<section id="start">
+  <div class="doodle" style="left:4vw;top:8vh;width:clamp(90px,10vw,150px);transform:rotate(-12deg)"><svg><use href="#d-paper"/></svg></div>
+  <div class="doodle" style="left:6vw;top:50vh;width:clamp(110px,12vw,190px);transform:rotate(18deg)"><svg><use href="#d-pencil"/></svg></div>
+  <div class="doodle" style="right:5vw;top:10vh;width:clamp(80px,8vw,130px)"><svg><use href="#d-glass"/></svg></div>
+  <div class="doodle" style="left:20vw;bottom:6vh;width:clamp(60px,6vw,90px)"><svg><use href="#d-sprout"/></svg></div>
+  <div class="doodle" style="right:7vw;bottom:10vh;width:clamp(80px,9vw,140px);transform:rotate(6deg)"><svg><use href="#d-trophy"/></svg></div>
+  <div class="bubble tail doodle" style="right:3vw;top:32vh;font-size:clamp(16px,1.6vw,22px);transform:rotate(4deg)">大獎在哪裡？</div>
+  <div class="doodle" style="left:24vw;top:5vh;width:44px"><svg><use href="#d-star"/></svg></div>
+  <div class="doodle" style="right:22vw;top:22vh;width:34px"><svg><use href="#d-star"/></svg></div>
+  <div class="doodle" style="right:12vw;bottom:34vh;width:52px"><svg><use href="#d-star"/></svg></div>
+  <div class="doodle" style="left:3vw;bottom:14vh;width:clamp(90px,9vw,140px)"><svg><use href="#d-squiggle"/></svg></div>
+  <div class="bubble tail doodle" style="left:3vw;top:30vh;font-size:clamp(16px,1.6vw,22px);transform:rotate(-5deg)">一起讀報！</div>
+
+  <div class="start-grid">
+  <div class="start-box">
+    <div class="flagwrap"><div class="flag"><h1 id="sTitle">全校讀報連線爭霸戰</h1></div></div>
+    <br>
+    <div class="bubble sub" id="sSub"></div>
+    <div class="tags">
+      <span class="tag" id="sCount">九宮格連線</span>
+      <span class="tag gold" id="sPrize">🏆 藏有 2 張大獎</span>
+      <span class="tag">橫、直、斜連成一線</span>
+      <span class="tag">作品上傳全校展示牆</span>
+      <span class="tag gold" id="sPts">⭐ 難 3・中 2・易 1・大獎 5 分</span>
+    </div>
+    <div class="panel">
+      <div class="class-row">
+        <label for="classInput">我們班是</label>
+        <span class="cls-wrap"><span class="point" aria-hidden="true">👉</span><input id="classInput" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="班級"></span>
+        <button class="btn btn-primary" id="startBtn">開戰！→</button>
+        <button class="btn btn-ghost" id="startRank">🏆 全校排行榜</button>
+        <button class="btn btn-ghost" id="startWall">🖼️ 展示牆</button>
+        <button class="btn btn-ghost" id="startQR">📱 掃碼進入</button>
+      </div>
+      <div class="err" id="err"></div>
+      <ol class="steps">
+        <li>全班拿出報紙，選一個號碼，請老師或小老師點開任務。</li>
+        <li>完成任務後，用班上 iPad 掃 QR Code，拍照＋寫字上傳到全校展示牆（第 3、5 格上傳 Padlet）。</li>
+        <li>貼好後按「✅ 答完了，打勾」，這一格才算完成。</li>
+        <li>每題依難度得分（難 3、中 2、易 1），🏆 大獎題分數最高；每連成一條線再加 <span id="sLinePts">5</span> 分！</li>
+      </ol>
+    </div>
+  </div>
+  </div>
+</section>
+
+<!-- 遊戲畫面 -->
+<section id="game" class="hidden">
+  <div class="doodle" style="left:.6vw;bottom:2vh;width:clamp(50px,4.5vw,80px);transform:rotate(-10deg);z-index:0"><svg><use href="#d-sprout"/></svg></div>
+  <div class="doodle" style="right:.8vw;bottom:3vh;width:36px;z-index:0"><svg><use href="#d-star"/></svg></div>
+  <header>
+    <div class="ttl" id="homeLink" title="回開始畫面">
+      <div class="flagwrap"><div class="flag"><h1 id="gTitle">全校讀報連線爭霸戰</h1></div></div>
+      <br><div class="bubble sub" id="gSub"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="clock" aria-live="off"><b class="ckT">--:--:--</b><span class="ckD"></span></div>
+    <div class="tools">
+      <button class="btn btn-ghost" id="fsBtn" title="全螢幕">⛶ 全螢幕</button>
+      <button class="btn btn-ghost" id="rankBtn">🏆 排行榜</button>
+      <button class="btn btn-ghost" id="wallBtn">🖼️ 展示牆</button>
+    </div>
+  </header>
+  <div class="play-wrap">
+    <main id="board"></main>
+    <aside class="battle">
+      <div class="b-me">
+        <div class="b-cls"><span>我們班</span><b id="gClass">—</b></div>
+        <div class="b-stats">
+          <div class="stat score"><b id="gScore">0</b><span>⭐ 總分</span></div>
+          <div class="stat"><b id="gFlipped">0/9</b><span>已完成</span></div>
+          <div class="stat line"><b id="gLines">0</b><span>🎯 連線</span></div>
+          <div class="stat prize"><b id="gPrize">0/2</b><span>🏆 大獎</span></div>
+          <div class="stat rk" id="gRankBox" title="看全校排行榜" style="cursor:pointer"><b id="gRank">—</b><span>全校排名</span></div>
+        </div>
+      </div>
+      <div class="b-head"><span>⚔️ 戰況進度</span><small><span class="live-dot"></span><span id="bUpd">每 10 秒更新</span></small></div>
+      <div id="battleList" class="mini-list"></div>
+      <div id="battleMe"></div>
+    </aside>
+  </div>
+</section>
+
+
+<!-- 全校排行榜 -->
+<section id="rank" class="hidden">
+  <div class="doodle" style="right:1vw;bottom:9vh;width:40px;z-index:0"><svg><use href="#d-star"/></svg></div>
+  <div class="doodle" style="left:46vw;top:3vh;width:34px;z-index:0"><svg><use href="#d-star"/></svg></div>
+  <header>
+    <div class="ttl" id="rankHome" title="回開始畫面">
+      <div class="flagwrap"><div class="flag"><h1>全校排行榜</h1></div></div>
+      <br><div class="bubble sub" id="rSub"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="clock"><b class="ckT">--:--:--</b><span class="ckD"></span></div>
+    <div class="tools">
+      <button class="btn btn-ghost" id="rFs">⛶ 全螢幕</button>
+      <button class="btn btn-ghost" id="rBack">🎮 回遊戲</button>
+      <button class="btn btn-ghost" id="rWall">🖼️ 展示牆</button>
+      <button class="btn btn-ghost" id="rClear">🔑 老師</button>
+    </div>
+  </header>
+  <div class="rank-wrap">
+    <div class="podium-area">
+      <div class="crayon-trophy"><svg viewBox="0 0 200 230"><use href="#d-crayon-trophy"/></svg></div>
+      <div class="podium" id="podium"></div>
+    </div>
+    <div class="rank-list" id="rankList"></div>
+  </div>
+  <div class="rank-foot">
+    <span class="pill"><span class="live-dot"></span>每 10 秒自動更新</span>
+    <span class="pill">排名：總分 → 連線數 → 先達成</span>
+    <span class="pill" id="rUpd">—</span>
+    <span class="pill hidden" id="rLocal">本機試玩：只顯示這台電腦玩過的班級</span>
+  </div>
+</section>
+
+
+<!-- iPad 上傳頁 -->
+<section id="post" class="hidden">
+  <header>
+    <div class="flagwrap"><div class="flag"><h1>上傳到全校展示牆</h1></div></div>
+  </header>
+  <div class="post-box">
+    <div id="postForm">
+      <div class="post-task">
+        <span class="badge" id="pTaskNo"></span>
+        <h2 id="pTitle"></h2>
+        <p id="pQ"></p>
+        <div id="pTopic" class="topic-chip hidden"></div>
+      </div>
+      <label class="post-row">我們班是
+        <span class="cls-wrap"><span class="point" aria-hidden="true">👉</span><input id="pCls" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="班級"></span>
+      </label>
+      <div class="post-row col">
+        <div class="post-lbl">📷 照片（最多 3 張）</div>
+        <div id="pThumbs" class="thumbs"></div>
+        <label class="btn btn-ghost file-btn">📷 拍照／選照片
+          <input id="pFile" type="file" accept="image/*" multiple hidden>
+        </label>
+      </div>
+      <div class="post-row col">
+        <div class="post-lbl">✏️ 文字 <small id="pCount">0/200</small></div>
+        <textarea id="pText" maxlength="200" rows="4"></textarea>
+      </div>
+      <div class="err" id="pErr"></div>
+      <button class="btn btn-primary post-send" id="pSend">📮 上傳到展示牆</button>
+      <p class="post-note" id="pNote"></p>
+    </div>
+    <div id="postDone" class="hidden post-done">
+      <div class="big">🎉 上傳成功！</div>
+      <p>回到投影畫面，按「✅ 答完了，打勾」就能得分。</p>
+      <div class="row">
+        <button class="btn btn-ghost" id="pAgain">再上傳一則</button>
+        <a class="btn btn-primary" id="pWall" href="#wall">🖼️ 看展示牆</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 全校展示牆 -->
+<section id="wall" class="hidden">
+  <header>
+    <div class="ttl" id="wallHome" title="回開始畫面">
+      <div class="flagwrap"><div class="flag wflag"><h1>全校讀報展示牆</h1></div></div>
+      <br><div class="bubble sub" id="wSub"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="clock"><b class="ckT">--:--:--</b><span class="ckD"></span></div>
+    <div class="tools">
+      <button class="btn btn-ghost" id="wFs">⛶ 全螢幕</button>
+      <button class="btn btn-ghost" id="wBack">🎮 回遊戲</button>
+      <button class="btn btn-ghost" id="wLogin">🔑 老師審核</button>
+    </div>
+  </header>
+  <div class="wall-bar">
+    <div class="chips" id="wChips"></div>
+    <select id="wCls"><option value="">全部班級</option></select>
+    <span class="pill"><span class="live-dot"></span><span id="wUpd">每 10 秒更新</span></span>
+    <span class="pill teach hidden" id="wTeach">👩‍🏫 審核模式：點「隱藏」即可下架</span>
+  </div>
+  <div class="wall-grid" id="wGrid"></div>
+</section>
+
+<!-- 題目視窗 -->
+<div id="modal" class="hidden" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <button class="close" id="closeBtn" aria-label="關閉">×</button>
+    <span class="badge" id="mBadge">第 1 號牌</span>
+    <span class="pts-badge" id="mPts"></span>
+    <div class="prize-banner hidden" id="mPrize"></div>
+    <div class="fixed-banner hidden" id="mFixed">📌 指定作答題・全校都要答！</div>
+    <div class="qbody">
+      <div>
+        <h2 class="mtitle" id="mTitle"></h2>
+        <p class="q" id="mQ"></p>
+        <div id="mTool"></div>
+        <div class="opts hidden" id="mOpts"></div>
+        <div class="ans-row hidden" id="mAnsRow">
+          <button class="btn btn-ghost" id="ansBtn">👀 顯示參考答案</button>
+          <span class="ans hidden" id="mAns"></span>
+        </div>
+      </div>
+      <aside class="padlet" id="mPadlet"></aside>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-ghost" id="laterBtn">先關閉，等一下再答</button><button class="btn btn-ok" id="doneBtn">✅ 答完了，打勾</button></div>
+  </div>
+</div>
+
+<div id="confirm" class="hidden">
+  <div class="box">
+    <p id="cMsg"></p>
+    <input id="pwInput" type="password" class="hidden" placeholder="老師密碼" autocomplete="current-password">
+    <div class="row">
+      <button class="btn btn-ghost" id="cNo">取消</button>
+      <button class="btn btn-primary" id="cYes">確定</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="fx"></canvas>
+<div id="bingo">🎯 連線！</div>
+<div id="toast"></div>
+<div id="zoom" class="hidden"></div>
+<div id="homeQR" class="hidden" role="dialog" aria-modal="true">
+  <div class="hq-box">
+    <div class="flagwrap"><div class="flag"><h1>掃描進入遊戲</h1></div></div>
+    <div class="hq-qr" id="hqQr"></div>
+    <div class="hq-url" id="hqUrl"></div>
+    <div class="hq-steps">① 用 iPad 相機掃描 → ② 輸入班級 → ③ 開戰！</div>
+    <button class="btn btn-primary" id="hqClose">關閉</button>
+  </div>
+</div>
+
+<script src="qrcode.js"></script>
+<script src="config.js?v=2"></script>
+<script src="questions.js?v=4"></script>
+<script>
+(function(){
+  const CFG = window.FLIP_CONFIG || {cards:[]};
+  const SYNC = window.FLIP_SYNC || {};
+  const SIZE = [3, 4, 5].includes(Number(SYNC.size)) ? Number(SYNC.size) : 3;
+  const N = SIZE * SIZE;
+  const API = /^https:\/\//.test(SYNC.sheetApi || "") ? SYNC.sheetApi.trim() : "";
+  const ROUND_NAME = String(SYNC.round || "預設").slice(0, 20);
+  const ROUND = ROUND_NAME + "（" + SIZE + "×" + SIZE + "）";   // 不同格數的排行榜自動分開
+  // 依格數從題庫取牌：大獎 + 題目，不夠就重複使用題目
+  const POOL = CFG.cards || [];
+  // 指定格（fixed: 第幾格）先放好，其他牌隨機
+  const FIXED = {};
+  POOL.forEach(c => { const f = Number(c.fixed); if (c.type !== "prize" && f >= 1 && f <= N && !FIXED[f]) FIXED[f] = c; });
+  const FIXED_N = Object.keys(FIXED).length;
+  const PRIZE_POOL = POOL.filter(c => c.type === "prize"), Q_POOL = POOL.filter(c => c.type !== "prize" && !Object.values(FIXED).includes(c));
+  const PRIZES = Math.max(0, Math.min(Number(SYNC.prizes != null ? SYNC.prizes : 2) || 0, N - 1 - FIXED_N, PRIZE_POOL.length || N));
+  const CARDS = [];
+  const PRIZE_PTS = Math.max(1, Math.min(99, Number(SYNC.prizePoints) || 5));
+  const LV_NAME = { 1: "易", 2: "中", 3: "難" };
+  const LINE_PTS = Math.max(0, Math.min(99, SYNC.linePoints != null ? Number(SYNC.linePoints) || 0 : 5));
+  function lvOf(c){ return Math.max(1, Math.min(3, Number(c && c.level) || 1)); }
+  function ptsOf(c){ return c && c.type === "prize" ? PRIZE_PTS : lvOf(c); }
+  const FIXED_AT = {};                       // 卡片索引 → 固定位置（0 起算）
+  Object.keys(FIXED).forEach(f => { FIXED_AT[CARDS.length] = Number(f) - 1; CARDS.push(FIXED[f]); });
+  for (let i = 0; i < PRIZES; i++) CARDS.push(PRIZE_POOL[i % PRIZE_POOL.length] || { type: "prize", prize: "🏆 大獎！", q: "" });
+  for (let i = 0; CARDS.length < N; i++) CARDS.push(Q_POOL.length ? Q_POOL[i % Q_POOL.length] : { type: "q", q: "（題目待老師填入）" });
+  const LINES = [];
+  for (let r = 0; r < SIZE; r++) LINES.push([...Array(SIZE).keys()].map(c => r * SIZE + c));
+  for (let c = 0; c < SIZE; c++) LINES.push([...Array(SIZE).keys()].map(r => r * SIZE + c));
+  LINES.push([...Array(SIZE).keys()].map(i => i * SIZE + i));
+  LINES.push([...Array(SIZE).keys()].map(i => i * SIZE + (SIZE - 1 - i)));
+  document.documentElement.style.setProperty("--n", SIZE);
+  const COLORS = ["#ffe14a","#ffd3c4","#cfe6ff","#fffdf2","#fff4a3","#e4f7d9","#ffffff","#ffc9de"];
+  const TILTS = [-1.6, 1.2, -0.8, 1.8, 0.6, -1.4, 1.0, -0.4];
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+
+  // ---- 本機儲存（各班各自的洗牌順序與進度）----
+  const sig = N + ":" + ROUND + ":" + CARDS.map(c => (c.fixed ? "@" + c.fixed : "") + (c.q || "").slice(0, 6)).join("|");
+  const store = {
+    get(k){ try { return JSON.parse(localStorage.getItem("flip:" + k)); } catch(e){ return null; } },
+    set(k, v){ try { localStorage.setItem("flip:" + k, JSON.stringify(v)); } catch(e){} }
+  };
+  let mem = {};               // 若瀏覽器不能存，就存在記憶體
+  function load(cls){
+    let s = store.get("class:" + cls) || mem[cls];
+    if (!s || s.sig !== sig || !Array.isArray(s.order) || s.order.length !== N) s = fresh();
+    if (!Array.isArray(s.done)) s.done = [];
+    return s;
+  }
+  function fresh(){
+    const order = Array(N).fill(-1), rest = [];
+    for (let ci = 0; ci < N; ci++) { if (ci in FIXED_AT) order[FIXED_AT[ci]] = ci; else rest.push(ci); }
+    for (let i = rest.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }
+    for (let p = 0; p < N; p++) if (order[p] < 0) order[p] = rest.shift();
+    return { sig, order, flipped: [], done: [] };
+  }
+  function linesOf(done){ return LINES.filter(L => L.every(p => done.includes(p))).length; }
+  function scoreOf(st){
+    return { done: st.done.length, lines: linesOf(st.done),
+      points: st.done.reduce((t, p) => t + ptsOf(CARDS[st.order[p]]), 0) + linesOf(st.done) * LINE_PTS,
+      prizes: st.flipped.filter(p => CARDS[st.order[p]] && CARDS[st.order[p]].type === "prize").length };
+  }
+  function save(){
+    const sc = scoreOf(state), key = sc.points * 1e6 + sc.lines * 1000 + sc.done;
+    if (state.bestKey == null || key > state.bestKey || !state.reachedAt) { state.reachedAt = Date.now(); }
+    state.bestKey = key;
+    mem[cls] = state; store.set("class:" + cls, state);
+    if (API) schedulePush(); else refreshMyRank();
+  }
+  // ---- 全校同步 ----
+  async function api(body){
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 12000);
+    try {
+      const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(Object.assign({ round: ROUND }, body)), signal: ctl.signal });
+      return await r.json();
+    } finally { clearTimeout(t); }
+  }
+  let pushTimer = null;
+  function schedulePush(){
+    if (!API || !cls) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(async () => {
+      const sc = scoreOf(state);
+      try { await api({ action: "save", cls, done: sc.done, lines: sc.lines, prizes: sc.prizes, points: sc.points }); refreshMyRank(); }
+      catch(e){ pushTimer = setTimeout(schedulePush, 8000); }
+    }, 600);
+  }
+  async function fetchRows(){
+    if (API) {
+      const r = await api({ action: "list" });
+      if (!r || !r.ok) throw new Error((r && r.error) || "讀取失敗");
+      return r.rows || [];
+    }
+    const rows = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || k.indexOf("flip:class:") !== 0) continue;
+        const st = JSON.parse(localStorage.getItem(k));
+        if (!st || st.sig !== sig || !Array.isArray(st.done) || !st.done.length) continue;
+        rows.push(Object.assign({ cls: k.slice(11), reachedAt: st.reachedAt || 0 }, scoreOf(st)));
+      }
+    } catch(e) {}
+    return rows;
+  }
+  function sortRows(rows){
+    return rows.filter(r => r.done > 0).map(r => Object.assign({ points: 0 }, r))
+      .sort((a, b) => b.points - a.points || b.lines - a.lines || b.done - a.done || a.reachedAt - b.reachedAt);
+  }
+
+  let cls = "", state = null;
+
+  // ---- 文字 ----
+  document.title = CFG.title || document.title;
+  $("sTitle").textContent = $("gTitle").textContent = CFG.title || "全校讀報連線爭霸戰";
+  $("sSub").textContent = $("gSub").textContent = CFG.subtitle || "";
+  if (!CFG.subtitle) { $("sSub").classList.add("hidden"); $("gSub").classList.add("hidden"); }
+  $("sCount").textContent = (SIZE === 3 ? "九宮格連線" : N + " 格連線") + "（" + SIZE + "×" + SIZE + "）";
+  $("sPrize").textContent = "🏆 藏有 " + PRIZES + " 張大獎";
+  $("sLinePts").textContent = LINE_PTS;
+  $("sPts").textContent = "⭐ 難 3・中 2・易 1・大獎 " + PRIZE_PTS + " 分" + (LINE_PTS ? "・連線 +" + LINE_PTS : "");
+  const last = store.get("lastClass");
+  if (last) $("classInput").value = last;
+
+
+  // 班級欄空白時：框框閃動＋手指提示
+  function watchEmpty(inp){
+    const w = inp.closest(".cls-wrap"), upd = () => w.classList.toggle("empty", !inp.value.trim());
+    inp.addEventListener("input", upd); upd(); return upd;
+  }
+  const updStartCls = watchEmpty($("classInput")), updPostCls = watchEmpty($("pCls"));
+
+  // ---- 開始 ----
+  function start(){
+    const v = $("classInput").value.trim();
+    if (!/^[0-9A-Za-z一-鿿]{1,6}$/.test(v)) { $("err").textContent = "請輸入班級，例如 801"; return; }
+    $("err").textContent = "";
+    cls = v; store.set("lastClass", cls);
+    state = load(cls); save();
+    $("start").classList.add("hidden"); $("game").classList.remove("hidden");
+    $("gClass").textContent = cls;
+    render(); schedulePush(); refreshMyRank();
+    if (location.hash !== "#play") location.hash = "#play";
+  }
+  $("startBtn").onclick = start;
+  $("classInput").addEventListener("keydown", e => { if (e.key === "Enter") start(); });
+  $("homeLink").onclick = $("rankHome").onclick = () => { location.hash = ""; };
+
+  // ---- 牌面 ----
+  function linedCells(){
+    const set = new Set();
+    LINES.forEach(L => { if (L.every(p => state.done.includes(p))) L.forEach(p => set.add(p)); });
+    return set;
+  }
+  function lineCount(){ return linesOf(state.done); }
+  function render(newCells){
+    const b = $("board"); b.innerHTML = "";
+    const lined = linedCells();
+    state.order.forEach((ci, pos) => {
+      const c = CARDS[ci], open = state.flipped.includes(pos), isP = c.type === "prize", dn = state.done.includes(pos);
+      const el = document.createElement("button");
+      const fx = !!(c && c.fixed);
+      el.className = "card" + (fx ? " fixed" : "") + (open ? " flipped" : "") + (lined.has(pos) ? " lined" : "") + (newCells && newCells.has(pos) ? " newline" : "");
+      el.setAttribute("aria-label", "第 " + (pos + 1) + " 號牌");
+      el.style.setProperty("--r", TILTS[(pos * 5 + 3) % TILTS.length] + "deg");
+      el.innerHTML =
+        '<div class="card-inner">' +
+          '<div class="face front"' + (fx ? '' : ' style="background-color:' + COLORS[(pos + Math.floor(pos / SIZE)) % COLORS.length] + '"') + '>' + (fx ? '<span class="pin">📌 指定題</span><span class="stamp">必答</span>' : '<span class="q">？</span>') + '<span class="n">' + (pos + 1) + '</span></div>' +
+          '<div class="face back' + (isP ? " is-prize" : "") + (dn ? " done" : " pending") + '">' +
+            '<div class="ico">' + (dn ? (isP ? "🏆" : "✅") : (isP ? "🏆" : fx ? "📌" : "✏️")) + '</div>' +
+            (dn ? '<div class="gain">+' + ptsOf(c) + ' 分</div>' : '') + '<div><span class="num">' + (pos + 1) + '</span> ' + (dn ? (isP ? "大獎・完成" : fx ? "指定題・完成" : "完成") : (isP ? "大獎・作答中" : fx ? "指定題・作答中" : "作答中")) + '</div>' +
+          '</div>' +
+        '</div>';
+      el.onclick = () => flip(pos, el);
+      b.appendChild(el);
+    });
+    updateStats();
+  }
+  function updateStats(){
+    $("gFlipped").textContent = state.done.length + "/" + N;
+    $("gScore").textContent = scoreOf(state).points;
+    $("gLines").textContent = lineCount();
+    const found = state.flipped.filter(p => CARDS[state.order[p]].type === "prize").length;
+    $("gPrize").textContent = found + "/" + PRIZES;
+  }
+  function flip(pos, el){
+    const first = !state.flipped.includes(pos);
+    if (first) { state.flipped.push(pos); save(); el.classList.add("flipped"); updateStats(); }
+    setTimeout(() => openModal(pos, first), first ? 650 : 0);
+  }
+
+  // ---- 題目視窗 ----
+  let curPos = -1;
+  function openModal(pos, first){
+    curPos = pos;
+    const isDone = state.done.includes(pos);
+    $("doneBtn").textContent = isDone ? "↩ 取消打勾" : "✅ 答完了，打勾";
+    $("doneBtn").className = "btn " + (isDone ? "btn-ghost" : "btn-ok");
+    $("laterBtn").textContent = isDone ? "關閉" : "先關閉，等一下再答";
+    const c = CARDS[state.order[pos]], isP = c.type === "prize";
+    $("mBadge").textContent = "第 " + (pos + 1) + " 號牌" + (c.fixed ? "・📌 指定作答" : "");
+    $("mPrize").classList.toggle("hidden", !isP);
+    const lv = lvOf(c);
+    $("mPts").className = "pts-badge " + (isP ? "p" : "l" + lv);
+    $("mPts").textContent = isP ? "🏆 大獎題・" + PRIZE_PTS + " 分" : "★".repeat(lv) + "☆".repeat(3 - lv) + " " + LV_NAME[lv] + "・" + lv + " 分";
+    $("mFixed").classList.toggle("hidden", !c.fixed);
+    $("mPrize").textContent = isP ? (c.prize || "🏆 恭喜翻到大獎！") : "";
+    $("mTitle").textContent = c.title || "";
+    $("mTitle").classList.toggle("hidden", !c.title);
+    $("mQ").textContent = c.q || "";
+    renderTool(c);
+    const opts = $("mOpts");
+    if (Array.isArray(c.options) && c.options.length) {
+      opts.innerHTML = c.options.map((o, i) =>
+        '<div class="opt" data-v="' + esc(o) + '"><span class="k">' + "ABCDEFGH"[i] + '</span>' + esc(o) + '</div>').join("");
+      opts.classList.remove("hidden");
+    } else { opts.innerHTML = ""; opts.classList.add("hidden"); }
+    const hasAns = c.answer != null && c.answer !== "";
+    $("mAnsRow").classList.toggle("hidden", !hasAns);
+    $("mAns").classList.add("hidden");
+    $("mAns").textContent = hasAns ? "參考答案：" + c.answer : "";
+    $("ansBtn").classList.remove("hidden");
+    renderShare(pos, c);
+    $("modal").classList.remove("hidden");
+    if (isP && first) confetti();
+  }
+  $("ansBtn").onclick = () => {
+    $("mAns").classList.remove("hidden"); $("ansBtn").classList.add("hidden");
+    const a = $("mAns").textContent.replace(/^參考答案：/, "");
+    document.querySelectorAll("#mOpts .opt").forEach(o => { if (o.dataset.v === a) o.classList.add("correct"); });
+  };
+  // ---- 上傳方式：展示牆 QR 或 Padlet QR ----
+  function qrSvg(url){
+    try { const qr = qrcode(0, "M"); qr.addData(url); qr.make(); return qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); } catch(e) { return ""; }
+  }
+  function postUrl(c){
+    const q = new URLSearchParams({ post: "1", cls: cls, task: String(c.id || "") });
+    const tp = state.draws && state.draws[c.id]; if (tp) q.set("topic", tp);
+    return location.origin + location.pathname + "?" + q.toString();
+  }
+  function renderShare(pos, c){
+    const box = $("mPadlet");
+    if (c.share === "padlet") {
+      const url = (c.padletUrl || CFG.padletUrl || "").trim();
+      if (!/^https?:\/\//.test(url)) {
+        box.innerHTML = '<span class="share-tag padlet">📌 這題上傳 Padlet</span><div class="none">老師還沒設定 Padlet 網址<br>（questions.js 這一題的 padletUrl）</div>';
+        return;
+      }
+      const hint = esc(CFG.padletHint || "").replace("801", esc(cls)).replace("全班標題接力賽", esc(c.title || ""));
+      box.innerHTML = '<span class="share-tag padlet">📌 這題上傳 Padlet</span><div class="qr">' + qrSvg(url) + '</div>' +
+        '<div class="hint">用班上 iPad 掃描<br>' + hint + '</div><a href="' + esc(url) + '" target="_blank" rel="noopener">打開 Padlet ↗</a>';
+      return;
+    }
+    const url = postUrl(c);
+    box.innerHTML = '<span class="share-tag">🖼️ 上傳到全校展示牆</span><div class="qr">' + qrSvg(url) + '</div>' +
+      '<div class="hint">用班上 iPad 掃描<br>拍照＋寫字，馬上上牆！</div>' +
+      '<a href="' + esc(url) + '" target="_blank" rel="noopener">在這台電腦上傳 ↗</a>';
+  }
+
+  // ---- 題目卡工具：抽籤機、倒數計時 ----
+  let timerId = null;
+  function stopTimer(){ clearInterval(timerId); timerId = null; }
+  function renderTool(c){
+    stopTimer();
+    const box = $("mTool"); box.innerHTML = "";
+    if (c.tool === "draw") {
+      const topics = (CFG.topics && CFG.topics.length) ? CFG.topics : ["（請在 questions.js 填 topics）"];
+      state.draws = state.draws || {};
+      const got = state.draws[c.id];
+      box.innerHTML = '<div class="tool"><div class="draw-box' + (got ? " done" : "") + '" id="drawBox">' + (got ? esc(got) : "？？？") + '</div>' +
+        (got ? '<span style="font-weight:900;font-size:20px">🎯 你們班的議題</span>' : '<button class="btn btn-primary" id="drawBtn">🎲 抽議題</button>') + '</div>';
+      if (!got) $("drawBtn").onclick = () => {
+        $("drawBtn").disabled = true;
+        const el = $("drawBox"); el.classList.add("spin");
+        let k = 0, n = 18 + Math.floor(Math.random() * topics.length); const myPos = curPos;
+        const pick = topics[n % topics.length];
+        (function step(){
+          el.textContent = topics[k++ % topics.length];
+          if (k <= n) setTimeout(step, 40 + k * 3);
+          else {
+            state.draws[c.id] = pick; save();
+            if (!el.isConnected || $("modal").classList.contains("hidden") || curPos !== myPos) return;
+            el.textContent = pick; el.classList.remove("spin"); el.classList.add("done"); confetti(true);
+            const btn = $("drawBtn"); if (btn) btn.outerHTML = '<span style="font-weight:900;font-size:20px">🎯 你們班的議題</span>';
+            renderShare(curPos, c);
+          }
+        })();
+      };
+    } else if (c.tool === "timer") {
+      const total = Math.max(10, Number(c.seconds) || 120);
+      const fmt = t => String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+      box.innerHTML = '<div class="tool"><div class="timer-box" id="tmBox">' + fmt(total) + '</div>' +
+        '<button class="btn btn-primary" id="tmBtn">⏱️ 開始計時</button></div>';
+      $("tmBtn").onclick = () => {
+        stopTimer();
+        let left = total; const el = $("tmBox");
+        el.className = "timer-box"; el.textContent = fmt(left); $("tmBtn").textContent = "↺ 重新計時";
+        timerId = setInterval(() => {
+          left--; el.textContent = fmt(Math.max(0, left));
+          if (left <= 10) el.classList.add("low");
+          if (left <= 0) { stopTimer(); el.textContent = "時間到！"; el.classList.add("up"); }
+        }, 1000);
+      };
+    }
+  }
+
+  function closeModal(){ $("modal").classList.add("hidden"); stopTimer(); }
+  $("closeBtn").onclick = $("laterBtn").onclick = closeModal;
+  $("doneBtn").onclick = () => {
+    const pos = curPos; if (pos < 0) return;
+    const before = lineCount();
+    let gained = 0;
+    if (state.done.includes(pos)) state.done = state.done.filter(p => p !== pos);
+    else { state.done.push(pos); gained = ptsOf(CARDS[state.order[pos]]); }
+    save(); closeModal();
+    const after = lineCount();
+    if (after > before) gained += (after - before) * LINE_PTS;
+    if (after > before) {
+      const newLineCells = new Set();
+      LINES.forEach(L => { if (L.every(p => state.done.includes(p)) && L.includes(pos)) L.forEach(p => newLineCells.add(p)); });
+      render(newLineCells);
+      bingo(after, gained);
+    } else { render(); if (gained) toast("+" + gained + " 分！"); }
+  };
+  let toastT = null;
+  function toast(t){
+    const el = $("toast"); el.textContent = t; el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+    clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("show"), 1600);
+  }
+  function bingo(n, gained){
+    const el = $("bingo");
+    el.innerHTML = "🎯 連線！第 " + n + " 條" + (gained ? '<div style="font-size:.45em;text-align:center">+' + gained + " 分！" + (LINE_PTS ? "（含連線 +" + LINE_PTS + "）" : "") + "</div>" : "");
+    el.classList.add("show"); confetti(true);
+    setTimeout(() => el.classList.remove("show"), 2600);
+  }
+  $("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeModal(); $("confirm").classList.add("hidden"); } });
+
+  // ---- 工具列 ----
+  $("fsBtn").onclick = () => {
+    try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch(e) {}
+  };
+  function ask(html, yes, needPw){
+    $("cMsg").innerHTML = html; $("confirm").classList.remove("hidden");
+    $("pwInput").value = ""; $("pwInput").classList.toggle("hidden", !needPw);
+    if (needPw) setTimeout(() => $("pwInput").focus(), 50);
+    $("cNo").onclick = () => $("confirm").classList.add("hidden");
+    $("cYes").onclick = () => { const pw = $("pwInput").value; $("confirm").classList.add("hidden"); yes(pw); };
+  }
+
+  // ---- 時鐘 ----
+  const WD = "日一二三四五六";
+  function tick(){
+    const d = new Date(), z = n => String(n).padStart(2, "0");
+    const t = z(d.getHours()) + ":" + z(d.getMinutes()) + ":" + z(d.getSeconds());
+    const ds = (d.getMonth() + 1) + "/" + d.getDate() + "（" + WD[d.getDay()] + "）";
+    document.querySelectorAll(".ckT").forEach(e => e.textContent = t);
+    document.querySelectorAll(".ckD").forEach(e => e.textContent = ds);
+  }
+  tick(); setInterval(tick, 1000);
+
+
+  // ---- 全校排行榜 ----
+  const MEDAL = { 1: "#ffd21f", 2: "#c9d1d9", 3: "#e8a066" };
+  const BLOCK = { 1: { h: 215, c: "#ffe14a" }, 2: { h: 175, c: "#cfe6ff" }, 3: { h: 150, c: "#ffd3c4" } };
+  const FIG = { 1: "fig-cheer", 2: "fig-wave", 3: "fig-hop" };
+  function podiumCol(place, row, me){
+    const b = BLOCK[place];
+    const name = row ? esc(row.cls) : "？";
+    const stat = row ? '⭐ <b>' + row.points + '</b> 分<br>🎯 ' + row.lines + ' 條・' + row.done + '/' + N + ' 格' + (row.prizes ? ' ' + "🏆".repeat(Math.min(row.prizes, 3)) : "") : "等你上榜";
+    return '<div class="pcol p' + place + (row ? "" : " empty") + (me ? " me" : "") + '">' +
+      '<div class="pname">' + name + '</div>' +
+      '<div class="pfig" style="--medal:' + MEDAL[place] + (row ? "" : ";opacity:.3") + '"><svg viewBox="0 0 120 150"><use href="#' + FIG[place] + '"/></svg></div>' +
+      '<div class="pblock"><svg viewBox="0 0 200 ' + b.h + '">' +
+        '<g filter="url(#crayon)"><path d="M6 12 Q60 4 100 8 T194 10 L197 ' + (b.h - 2) + ' L3 ' + (b.h - 2) + ' Z" fill="' + b.c + '" stroke="#1d1d1b" stroke-width="6" stroke-linejoin="round"/></g>' +
+        '<text x="100" y="' + (place === 1 ? 86 : 68) + '" text-anchor="middle" font-size="' + (place === 1 ? 80 : 60) + '" font-weight="900" fill="#1d1d1b" font-family="Huninn,Noto Sans TC,sans-serif">' + place + '</text>' +
+      '</svg><div class="pstat">' + stat + '</div></div></div>';
+  }
+  let lastRows = null;
+  async function refreshRank(){
+    let rows;
+    try { rows = sortRows(await fetchRows()); }
+    catch(e) { $("rUpd").textContent = "⚠️ 連不上排行榜，稍後自動重試"; return; }
+    lastRows = rows;
+    const me = store.get("lastClass");
+    $("podium").innerHTML = podiumCol(2, rows[1], rows[1] && rows[1].cls === me) +
+      podiumCol(1, rows[0], rows[0] && rows[0].cls === me) + podiumCol(3, rows[2], rows[2] && rows[2].cls === me);
+    const rest = rows.slice(3), list = $("rankList");
+    list.classList.toggle("two", rest.length > 9);
+    list.classList.toggle("three", rest.length > 32);
+    if (!rows.length) {
+      list.innerHTML = '<div class="rank-empty">還沒有班級上榜<br>快去翻牌、打勾吧！✏️</div>';
+    } else if (!rest.length) {
+      list.innerHTML = '<div class="rank-empty">目前 ' + rows.length + ' 個班級上榜<br>第 4 名起會排在這裡</div>';
+    } else {
+      list.innerHTML = rest.slice(0, 60).map((r, i) =>
+        '<div class="rrow' + (r.cls === me ? " me" : "") + '"><span class="rn">' + (i + 4) + '</span><span class="rc">' + esc(r.cls) + '</span>' +
+        '<span class="rbar" title="' + r.done + '/' + N + ' 格"><i style="width:' + Math.round(r.done / N * 100) + '%"></i></span>' +
+        '<span class="rl">⭐ ' + r.points + '</span><span class="rp">🎯 ' + r.lines + '</span></div>').join("");
+    }
+    const d = new Date(), z = n => String(n).padStart(2, "0");
+    $("rUpd").textContent = "最後更新 " + z(d.getHours()) + ":" + z(d.getMinutes()) + ":" + z(d.getSeconds()) + "・共 " + rows.length + " 班上榜";
+  }
+
+  async function refreshBattle(){
+    if (!cls) return;
+    let rows;
+    try { rows = sortRows(await fetchRows()); }
+    catch(e) { $("bUpd").textContent = "連線中斷，稍後重試"; return; }
+    const i = rows.findIndex(r => r.cls === cls), medal = ["🥇", "🥈", "🥉"];
+    $("gRank").textContent = i < 0 ? "—" : "第" + (i + 1);
+    const row = (r, k) => '<div class="mrow' + (k < 3 ? " g" + (k + 1) : "") + (r.cls === cls ? " me" : "") + '">' +
+      '<span class="mn">' + (medal[k] || (k + 1)) + '</span><span class="mc">' + esc(r.cls) + '</span>' +
+      '<span class="mb"><i style="width:' + Math.round(r.done / N * 100) + '%"></i></span>' +
+      '<span class="ml">⭐ ' + r.points + '</span></div>';
+    const list = $("battleList");
+    list.innerHTML = rows.length ? rows.slice(0, 12).map(row).join("") : '<div class="mini-empty">還沒有班級上榜<br>快去搶第一！✏️</div>';
+    // 我們班若不在可見範圍內，就釘在最下面
+    $("battleMe").innerHTML = "";
+    if (i >= 0) {
+      const H = list.clientHeight, kids = [...list.children];
+      const fits = k => kids[k] && kids[k].offsetTop - list.offsetTop + kids[k].offsetHeight <= H;
+      if (!fits(i)) {
+        $("battleMe").innerHTML = '<div class="b-gap">⋮</div>' + row(rows[i], i);
+        const H2 = list.clientHeight;
+        kids.forEach(el => { el.style.visibility = (el.offsetTop - list.offsetTop + el.offsetHeight <= H2) ? "" : "hidden"; });
+      }
+    }
+    const d = new Date(), z = n => String(n).padStart(2, "0");
+    $("bUpd").textContent = "共 " + rows.length + " 班・" + z(d.getHours()) + ":" + z(d.getMinutes()) + ":" + z(d.getSeconds());
+  }
+
+  function refreshMyRank(){ return refreshBattle(); }
+
+  $("rSub").textContent = (CFG.title || "全校讀報連線爭霸戰") + "・" + ROUND_NAME + "・" + (SIZE === 3 ? "九宮格" : N + " 格");
+  if (!API) $("rLocal").classList.remove("hidden");
+  $("rankBtn").onclick = $("startRank").onclick = $("gRankBox").onclick = () => { location.hash = "#rank"; };
+  $("rBack").onclick = () => { location.hash = cls ? "#play" : ""; };
+  $("rFs").onclick = () => $("fsBtn").onclick();
+  $("rClear").onclick = () => ask("清空「" + esc(ROUND) + "」的全校排行榜？<br>請輸入老師密碼。", async pw => {
+    if (API) {
+      try { const r = await api({ action: "clear", password: pw }); if (!r.ok) { ask(esc(r.error || "清除失敗"), () => {}); return; } }
+      catch(e) { ask("連不上排行榜，請稍後再試。", () => {}); return; }
+    } else {
+      try { Object.keys(localStorage).filter(k => k.indexOf("flip:class:") === 0).forEach(k => localStorage.removeItem(k)); } catch(e) {}
+      mem = {}; if (cls) { state = load(cls); render(); }
+    }
+    refreshRank();
+  }, true);
+
+
+  // ================= 全校展示牆：共用 =================
+  const TASKS = {}; (CFG.cards || []).forEach(c => { if (c.id != null) TASKS[c.id] = c; });
+  const TASK_COLORS = ["#ffe14a", "#ffd3c4", "#cfe6ff", "#c8f2b8", "#ffc9de", "#e5dbff", "#fff4a3", "#ffd8a8", "#c5f6fa"];
+  const taskColor = id => TASK_COLORS[(Number(id) || 0) % TASK_COLORS.length];
+  const WALL_KEY = "wall:" + ROUND;
+  function localPosts(){ return store.get(WALL_KEY) || []; }
+  function hm(t){ const d = new Date(t), z = n => String(n).padStart(2, "0"); return z(d.getHours()) + ":" + z(d.getMinutes()); }
+
+  // 照片壓縮：長邊 1280（本機試玩 800），JPEG
+  function shrink(file, max){
+    return new Promise((ok, bad) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(url); ok(cv.toDataURL("image/jpeg", 0.78));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); bad(new Error("讀不到這張照片")); };
+      img.src = url;
+    });
+  }
+
+  // ================= iPad 上傳頁 =================
+  const QS = new URLSearchParams(location.search);
+  let postTask = null, postPhotos = [];
+  function initPost(){
+    postTask = TASKS[Number(QS.get("task"))] || null;
+    $("pCls").value = QS.get("cls") || store.get("lastClass") || ""; updPostCls();
+    $("pTaskNo").textContent = postTask ? (postTask.type === "prize" ? "🏆 大獎任務" : "任務") : "任務";
+    $("pTitle").textContent = postTask ? (postTask.title || "") : "找不到這個任務";
+    $("pQ").textContent = postTask ? (postTask.q || "") : "請回到投影畫面重新掃描 QR Code。";
+    const tp = QS.get("topic");
+    $("pTopic").classList.toggle("hidden", !tp); $("pTopic").textContent = tp ? "🎯 抽到的議題：" + tp : "";
+    $("pText").placeholder = postTask && postTask.textHint ? postTask.textHint : "寫下你們的答案……";
+    $("pNote").textContent = API ? "上傳後全校都看得到，請不要拍到同學的臉或寫真實姓名以外的個資。" : "本機試玩模式：只存在這台裝置，不會真的上傳。";
+    $("postForm").classList.remove("hidden"); $("postDone").classList.add("hidden");
+    postPhotos = []; drawThumbs(); $("pText").value = ""; $("pCount").textContent = "0/200"; $("pErr").textContent = "";
+    $("pSend").disabled = !postTask;
+  }
+  function drawThumbs(){
+    $("pThumbs").innerHTML = postPhotos.map((d, i) => '<div class="thumb"><img src="' + d + '" alt=""><button data-i="' + i + '" aria-label="刪除">✕</button></div>').join("");
+    $("pThumbs").querySelectorAll("button").forEach(b => b.onclick = () => { postPhotos.splice(Number(b.dataset.i), 1); drawThumbs(); });
+  }
+  $("pFile").onchange = async e => {
+    const files = [...e.target.files].slice(0, 3 - postPhotos.length);
+    for (const f of files) { try { postPhotos.push(await shrink(f, API ? 1280 : 800)); } catch(err) { $("pErr").textContent = err.message; } }
+    e.target.value = ""; drawThumbs();
+  };
+  $("pText").oninput = () => { $("pCount").textContent = $("pText").value.length + "/200"; };
+  $("pSend").onclick = async () => {
+    const c = $("pCls").value.trim(), tp = QS.get("topic");
+    let text = $("pText").value.trim();
+    if (!/^[0-9A-Za-z一-鿿]{1,6}$/.test(c)) { $("pErr").textContent = "請填班級，例如 801"; return; }
+    if (!text && !postPhotos.length) { $("pErr").textContent = "請先拍照或寫字再上傳"; return; }
+    if (tp) text = "🎯 " + tp + "｜" + text;
+    $("pErr").textContent = ""; $("pSend").disabled = true; $("pSend").textContent = "上傳中…";
+    try {
+      if (API) {
+        const r = await api({ action: "post", cls: c, taskId: postTask.id, title: postTask.title || "", text,
+          photos: postPhotos.map(d => ({ mime: "image/jpeg", data: d.split(",")[1] })) });
+        if (!r || !r.ok) throw new Error((r && r.error) || "上傳失敗");
+      } else {
+        const list = localPosts();
+        list.push({ id: Math.random().toString(36).slice(2, 10), cls: c, taskId: postTask.id, title: postTask.title || "", text,
+          photos: postPhotos.slice(), time: Date.now(), hidden: false });
+        store.set(WALL_KEY, list);
+        if (JSON.stringify(store.get(WALL_KEY) || []).length < 10) throw new Error("這台裝置空間不足，試玩模式存不下照片");
+      }
+      store.set("lastClass", c);
+      $("postForm").classList.add("hidden"); $("postDone").classList.remove("hidden");
+    } catch(err) {
+      $("pErr").textContent = "😢 " + (err.name === "AbortError" ? "網路太慢，請再按一次" : err.message);
+    } finally { $("pSend").disabled = false; $("pSend").textContent = "📮 上傳到展示牆"; }
+  };
+  $("pAgain").onclick = initPost;
+
+  // ================= 全校展示牆 =================
+  let wallFilter = 0, wallPw = "", wallSeen = new Set(), wallFirst = true;
+  try { wallPw = sessionStorage.getItem("flip:pw") || ""; } catch(e) {}
+  const imgCache = {}, imgQueue = []; let imgBusy = 0;
+  function loadImg(id, el){
+    if (imgCache[id]) { el.innerHTML = '<img src="' + imgCache[id] + '" alt="">'; return; }
+    if (id.indexOf("data:") === 0) { el.innerHTML = '<img src="' + id + '" alt="">'; return; }
+    imgQueue.push([id, el]); pumpImg();
+  }
+  function pumpImg(){
+    while (imgBusy < 3 && imgQueue.length) {
+      const [id, el] = imgQueue.shift(); imgBusy++;
+      api({ action: "file", id, password: wallPw }).then(r => {
+        if (r && r.ok) { imgCache[id] = "data:" + r.mime + ";base64," + r.data; if (el.isConnected) el.innerHTML = '<img src="' + imgCache[id] + '" alt="">'; }
+        else el.textContent = "照片讀取失敗";
+      }).catch(() => { el.textContent = "照片讀取失敗"; }).finally(() => { imgBusy--; pumpImg(); });
+    }
+  }
+  async function fetchPosts(){
+    if (API) {
+      const r = await api({ action: "wall", password: wallPw || undefined });
+      if (!r || !r.ok) throw new Error((r && r.error) || "讀取失敗");
+      if (wallPw && !r.teacher) { wallPw = ""; try { sessionStorage.removeItem("flip:pw"); } catch(e) {} }
+      return r.posts || [];
+    }
+    return localPosts().filter(p => wallPw || !p.hidden);
+  }
+  function wallChips(){
+    const ids = Object.keys(TASKS).map(Number).filter(id => TASKS[id].share !== "padlet").sort((a, b) => a - b);
+    $("wChips").innerHTML = '<button class="chip' + (wallFilter ? "" : " on") + '" data-id="0">全部</button>' +
+      ids.map(id => '<button class="chip' + (wallFilter === id ? " on" : "") + '" data-id="' + id + '" style="' + (wallFilter === id ? "" : "background:" + taskColor(id)) + '">' + esc(TASKS[id].title || "任務 " + id) + '</button>').join("");
+    $("wChips").querySelectorAll(".chip").forEach(b => b.onclick = () => { wallFilter = Number(b.dataset.id); wallChips(); refreshWall(); });
+  }
+  async function refreshWall(){
+    let posts;
+    try { posts = await fetchPosts(); }
+    catch(e) { $("wUpd").textContent = "⚠️ 連不上展示牆，稍後重試"; return; }
+    // 班級選單
+    const sel = $("wCls"), cur = sel.value, classes = [...new Set(posts.map(p => p.cls))].sort();
+    sel.innerHTML = '<option value="">全部班級</option>' + classes.map(c => '<option' + (c === cur ? " selected" : "") + '>' + esc(c) + '</option>').join("");
+    const show = posts.filter(p => (!wallFilter || p.taskId === wallFilter) && (!sel.value || p.cls === sel.value)).sort((a, b) => b.time - a.time);
+    const g = $("wGrid");
+    if (!show.length) g.innerHTML = '<div class="wempty">' + (posts.length ? "這個篩選還沒有作品" : "展示牆還是空的<br>完成任務後用 iPad 掃 QR Code 上傳吧！📷") + '</div>';
+    else {
+      g.innerHTML = show.map(p => {
+        const n = (p.photos || []).length, isNew = !wallFirst && !wallSeen.has(p.id);
+        return '<article class="wcard' + (p.hidden ? " hid" : "") + (isNew ? " new" : "") + '">' +
+          '<div class="wtop"><span class="wcls">' + esc(p.cls) + '</span><span class="wtask" style="background:' + taskColor(p.taskId) + '">' + esc(p.title || "") + '</span>' +
+          '<span class="wtime">' + (p.hidden ? "🙈 已隱藏・" : "") + hm(p.time) + '</span></div>' +
+          (n ? '<div class="wphotos n' + Math.min(n, 3) + '">' + p.photos.map(id => '<div class="wph" data-img="' + esc(id) + '">載入中…</div>').join("") + '</div>' : "") +
+          (p.text ? '<div class="wtext">' + esc(p.text) + '</div>' : "") +
+          (wallPw ? '<button class="btn ' + (p.hidden ? "btn-ok" : "btn-ghost") + ' whide" data-id="' + esc(p.id) + '" data-h="' + (p.hidden ? 0 : 1) + '">' + (p.hidden ? "👁 恢復上牆" : "🙈 隱藏") + '</button>' : "") +
+          '</article>';
+      }).join("");
+      g.querySelectorAll(".wph").forEach(el => loadImg(el.dataset.img, el));
+      g.querySelectorAll(".whide").forEach(b => b.onclick = () => setHidden(b.dataset.id, b.dataset.h === "1", b));
+    }
+    posts.forEach(p => wallSeen.add(p.id)); wallFirst = false;
+    $("wUpd").textContent = "共 " + posts.length + " 則・" + hm(Date.now()) + " 更新";
+    $("wTeach").classList.toggle("hidden", !wallPw);
+    $("wLogin").textContent = wallPw ? "🚪 登出審核" : "🔑 老師審核";
+  }
+  async function setHidden(id, hidden, btn){
+    btn.disabled = true;
+    if (API) {
+      try { const r = await api({ action: "hide", id, hidden, password: wallPw }); if (!r.ok) { toast(r.error || "失敗"); } }
+      catch(e) { toast("連線失敗"); }
+    } else {
+      const list = localPosts(); list.forEach(p => { if (p.id === id) p.hidden = hidden; }); store.set(WALL_KEY, list);
+    }
+    refreshWall();
+  }
+  $("wLogin").onclick = () => {
+    if (wallPw) { wallPw = ""; try { sessionStorage.removeItem("flip:pw"); } catch(e) {} refreshWall(); return; }
+    ask("老師審核：輸入老師密碼<br><small>登入後每則作品下方會出現「隱藏」按鈕</small>", async pw => {
+      if (!pw) return;
+      if (API) {
+        try { const r = await api({ action: "login", password: pw }); if (!r.ok) { ask(esc(r.error || "密碼錯誤"), () => {}); return; } }
+        catch(e) { ask("連不上後端，請稍後再試。", () => {}); return; }
+      }
+      wallPw = pw; try { sessionStorage.setItem("flip:pw", pw); } catch(e) {}
+      refreshWall();
+    }, true);
+  };
+  $("wGrid").addEventListener("click", e => {
+    const img = e.target.closest(".wph img"); if (!img) return;
+    $("zoom").innerHTML = '<img src="' + img.src + '" alt="">'; $("zoom").classList.remove("hidden");
+  });
+  $("zoom").onclick = () => $("zoom").classList.add("hidden");
+  $("wSub").textContent = (CFG.title || "全校讀報連線爭霸戰") + "・" + ROUND_NAME;
+  $("wallBtn").onclick = $("startWall").onclick = $("rWall").onclick = () => { location.hash = "#wall"; };
+  $("wBack").onclick = () => { location.hash = cls ? "#play" : ""; };
+  $("wallHome").onclick = () => { location.hash = ""; };
+  $("wFs").onclick = () => $("fsBtn").onclick();
+  $("wCls").onchange = refreshWall;
+  $("startQR").onclick = () => {
+    const url = location.origin + location.pathname;
+    $("hqQr").innerHTML = qrSvg(url); $("hqUrl").textContent = url; $("homeQR").classList.remove("hidden");
+  };
+  $("hqClose").onclick = () => $("homeQR").classList.add("hidden");
+  $("homeQR").addEventListener("click", e => { if (e.target.id === "homeQR") $("homeQR").classList.add("hidden"); });
+
+  // ---- 畫面切換 ----
+  function route(){
+    const h = location.hash;
+    const show = id => ["start", "game", "rank", "post", "wall"].forEach(x => $(x).classList.toggle("hidden", x !== id));
+    if (QS.get("post") === "1" && h !== "#wall") { show("post"); if (!postTask) initPost(); }
+    else if (h === "#wall") { show("wall"); wallChips(); refreshWall(); }
+    else if (h === "#rank") { show("rank"); refreshRank(); }
+    else if (h === "#play" && cls) { show("game"); refreshMyRank(); }
+    else show("start");
+  }
+  window.addEventListener("hashchange", route);
+  let beat = 0;
+  setInterval(() => {
+    beat++;
+    if (!$("rank").classList.contains("hidden")) refreshRank();
+    else if (!$("wall").classList.contains("hidden")) refreshWall();
+    else if (!$("game").classList.contains("hidden")) refreshBattle();
+  }, 10000);
+  route();
+
+  // ---- 彩帶 ----
+  function confetti(force){
+    const cv = $("fx"), ctx = cv.getContext("2d");
+    cv.width = innerWidth; cv.height = innerHeight;
+    const cols = ["#ffe14a","#1d1d1b","#ffffff","#ffd3c4","#8fe07a","#cfe6ff","#ff9e9e"];
+    const ps = Array.from({length: 260}, () => ({
+      x: cv.width / 2 + (Math.random() - .5) * 200, y: cv.height * .35,
+      vx: (Math.random() - .5) * 22, vy: -Math.random() * 20 - 6,
+      r: Math.random() * 8 + 5, c: cols[Math.floor(Math.random() * cols.length)],
+      a: Math.random() * 6, va: (Math.random() - .5) * .4
+    }));
+    let t = 0;
+    (function step(){
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ps.forEach(p => {
+        p.vy += .45; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.va;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c;
+        ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); ctx.restore();
+      });
+      if (++t < 220 && (force || !$("modal").classList.contains("hidden"))) requestAnimationFrame(step); else ctx.clearRect(0, 0, cv.width, cv.height);
+    })();
+  }
+})();
+</script>
+</body>
+</html>

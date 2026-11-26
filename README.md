@@ -1,0 +1,60 @@
+# 全校讀報連線爭霸戰
+
+各班在教室投影打開同一個網址，九宮格（3×3）或 16 格（4×4）翻牌連線；作品用班上 iPad 上傳到「全校展示牆」（第 3、5 格會拍到臉／錄到聲音，改上傳 Padlet）；全校排行榜即時同步。
+
+## 網址
+- 遊戲：`https://littlejocelyn2-hfjh.github.io/news-battle/`
+- 全校排行榜（大屏）：`https://littlejocelyn2-hfjh.github.io/news-battle/#rank`
+- 全校展示牆（大屏／老師手機審核）：`https://littlejocelyn2-hfjh.github.io/news-battle/#wall`
+- iPad 上傳頁：由題目卡上的 QR Code 自動帶入班級與任務（`?post=1&cls=801&task=4`）
+
+## 首頁 QR Code
+- 首頁按「📱 掃碼進入」會跳出本網站網址的大 QR Code，可投影給各班 iPad 掃描。
+- 另有可列印的 A4 海報（建議 repo 名稱 `news-battle`）。
+
+## 檔案
+| 檔案 | 用途 |
+|---|---|
+| `index.html` | 遊戲＋排行榜畫面 |
+| `questions.js` | 標題、本週報導、Padlet 網址、題庫（大獎牌＋題目牌，可多放） |
+| `config.js` | 排行榜後端網址 `sheetApi`、場次 `round`、格數 `size`、大獎張數 `prizes` |
+| `qrcode.js` | QR Code 產生器（MIT） |
+| `apps-script/Code.gs` | 排行榜＋展示牆後端（Google Apps Script，照片存雲端硬碟「讀報展示牆」資料夾） |
+
+## 一、開啟 GitHub Pages
+Settings → Pages → Source 選 **Deploy from a branch** → `main` / `(root)` → Save。
+
+## 二、部署排行榜後端（只要做一次）
+1. 新增一個 Google 試算表 → 擴充功能 → Apps Script。
+2. 把 `apps-script/Code.gs` 全部貼上，**第 8 行改成老師密碼**（10 字以上、英數混合）。
+3. 部署 → 新增部署作業 → 類型選「網頁應用程式」→ 執行身分：**我**；誰可以存取：**所有人** → 部署。
+4. 複製 `/exec` 結尾的網址，貼進 `config.js` 的 `sheetApi`。
+5. 直接打開那個網址看到 `{"ok":true,...}` 是正常的。
+
+> 之後若修改 Code.gs：重新貼上 → 再改一次密碼 → 部署 → 管理部署作業 → 編輯 → 版本選「新版本」。網址不變。
+
+## 三、每週換報導
+1. 改 `questions.js`：subtitle、padletUrl、題目與大獎內容（想用的題目排前面）。
+   - 改 `config.js` 的 `size`：`3`＝九宮格（2 大獎＋前 7 題）、`4`＝16 格（2 大獎＋前 14 題）；`prizes` 可改大獎張數。
+   - 不同格數的排行榜會自動分開。
+   - 題目加上 `fixed: 5` 就固定放在第 5 格（指定作答，各班相同、不會是大獎）；其他牌含大獎每班隨機。
+2. 改 `config.js` 的 `round`（例如 `"第 2 場"`），排行榜與各班牌面就會重新開始，舊場次資料仍留在試算表。
+3. 各班電腦按 **Ctrl+F5** 重新整理。
+
+## 計分與排名
+- 打勾完成的格子才得分：題目依 `questions.js` 的 `level`（3＝難 3 分、2＝中 2 分、1＝易 1 分），大獎題分數在 `config.js` 的 `prizePoints`（預設 5 分）。
+- 每連成一條線（橫、直、斜）再加 `linePoints` 分（預設 5 分）；取消打勾讓連線消失時會扣回。
+- 排名：總分 → 連線數 → 先達到這個成績的班級。
+
+## 全校展示牆
+- 題目卡右側有 QR Code：班上 iPad 掃描 → 拍照（最多 3 張，自動壓縮）＋寫字 → 上傳，馬上出現在 `#wall`。
+- 第 4 格「網頁隨機抽議題」：卡片上按「🎲 抽議題」，抽到後固定不變，上傳時自動帶上議題。
+- 第 6 格「數字密碼大搜查」：卡片上有 2 分鐘倒數計時。
+- 第 3、5 格（`share: "padlet"`）顯示 Padlet 的 QR Code，請在 `questions.js` 填 `padletUrl`。
+- **老師用手機審核**：手機打開 `#wall` → 右上「🔑 老師審核」輸入密碼 → 每則作品下方出現「🙈 隱藏」，可隨時下架或恢復。
+- 照片存在老師雲端硬碟，不公開分享；展示牆網址任何人都打得開（老師選擇不設展示碼），請提醒學生不要拍到臉。
+
+## 注意
+- 各班的牌面進度存在該台電腦的瀏覽器；同一班請只用一台電腦開。
+- 排行榜頁右上「🔑 老師」可輸入密碼清空本場排行榜；密碼只在 Apps Script，GitHub 上沒有。
+- `sheetApi` 空白時是本機試玩模式，排行榜只看得到這台電腦玩過的班級。
